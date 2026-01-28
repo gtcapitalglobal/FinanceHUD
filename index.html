@@ -141,8 +141,16 @@
         }
 
         function startEdit(expenseId) {
-            editingExpense = expenses.find(e => e.id === expenseId);
-            render();
+    const expense = expenses.find(e => e.id === expenseId);
+    if (!expense) {
+        alert('Expense not found!');
+        return;
+    }
+    editingExpense = { ...expense };
+    if (!editingExpense.expenseType) {
+        editingExpense.expenseType = 'fixed';
+    }
+    render();
         }
 
         function cancelEdit() {
