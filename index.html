@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance HUD - Gestão Financeira v1.2.0</title>
+    <title>Finance HUD v1.3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -16,8 +16,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const APP_VERSION = 'v1.2.0';
-
+        const APP_VERSION = 'v1.3.0';
         const firebaseConfig = {
             apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
             authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
@@ -27,53 +26,48 @@
             appId: "1:979106570809:web:4c09f578a99cd25407a3e8"
         };
 
+        const translations = {
+            pt: { title: 'FINANCE HUD', login: 'ENTRAR', createAccount: 'CRIAR CONTA', email: 'Email', password: 'Senha', logout: 'Sair', monthlyTotal: 'TOTAL MENSAL', fixedExpenses: 'DESPESAS FIXAS', reserves: 'RESERVAS', accumulated: 'acumulado', paid: 'pago', trend: 'TENDÊNCIA 6 MESES', newExpense: 'NOVA DESPESA', description: 'Descrição', amount: 'Valor ($)', dueDay: 'Dia (1-31)', add: 'Adicionar', edit: 'Editar', delete: 'Excluir', pay: 'Pagar', markUsed: 'Marcar Usado', used: 'Usado', fixed: 'Fixa (com vencimento)', reserve: 'Reserva (sem vencimento)', monthly: 'Mensal', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual', biannual: 'Bianual', fixedList: 'DESPESAS FIXAS', reservesList: 'RESERVAS (Sem Vencimento)', noFixed: 'Nenhuma despesa fixa', day: 'Dia', editExpense: 'EDITAR DESPESA', cancel: 'Cancelar', save: 'Salvar' },
+            en: { title: 'FINANCE HUD', login: 'LOGIN', createAccount: 'CREATE ACCOUNT', email: 'Email', password: 'Password', logout: 'Logout', monthlyTotal: 'MONTHLY TOTAL', fixedExpenses: 'FIXED EXPENSES', reserves: 'RESERVES', accumulated: 'accumulated', paid: 'paid', trend: '6-MONTH TREND', newExpense: 'NEW EXPENSE', description: 'Description', amount: 'Amount ($)', dueDay: 'Due day (1-31)', add: 'Add', edit: 'Edit', delete: 'Delete', pay: 'Pay', markUsed: 'Mark Used', used: 'Used', fixed: 'Fixed (with due date)', reserve: 'Reserve (no due date)', monthly: 'Monthly', quarterly: 'Quarterly', semiannual: 'Semiannual', annual: 'Annual', biannual: 'Biannual', fixedList: 'FIXED EXPENSES', reservesList: 'RESERVES (No Due Date)', noFixed: 'No fixed expenses', day: 'Day', editExpense: 'EDIT EXPENSE', cancel: 'Cancel', save: 'Save' }
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
-        let currentUser = null;
-        let expenses = [];
-        let customCategories = [];
-        let showSettings = false;
-        let showAddCategory = false;
-        let editingExpense = null;
-        let trendChartInstance = null;
+        let currentUser = null, expenses = [], customCategories = [], showSettings = false, editingExpense = null, trendChartInstance = null, currentLang = 'pt';
 
         const defaultCategories = [
-            { value: 'moradia', label: '🏠 Moradia', isDefault: true },
-            { value: 'cartao', label: '💳 Cartões', isDefault: true },
-            { value: 'carro', label: '🚗 Carro', isDefault: true },
-            { value: 'alimentacao', label: '🍔 Alimentação', isDefault: true },
-            { value: 'lazer', label: '🎮 Lazer', isDefault: true },
-            { value: 'saude', label: '💊 Saúde', isDefault: true },
-            { value: 'outros', label: '📦 Outros', isDefault: true }
+            { value: 'moradia', label: '🏠 Moradia', labelEn: '🏠 Housing', isDefault: true },
+            { value: 'cartao', label: '💳 Cartões', labelEn: '💳 Cards', isDefault: true },
+            { value: 'carro', label: '🚗 Carro', labelEn: '🚗 Car', isDefault: true },
+            { value: 'alimentacao', label: '🍔 Alimentação', labelEn: '🍔 Food', isDefault: true },
+            { value: 'lazer', label: '🎮 Lazer', labelEn: '🎮 Leisure', isDefault: true },
+            { value: 'saude', label: '💊 Saúde', labelEn: '💊 Health', isDefault: true },
+            { value: 'outros', label: '📦 Outros', labelEn: '📦 Others', isDefault: true }
         ];
 
-        const frequencies = [
-            { value: 'monthly', label: 'Mensal', divisor: 1 },
-            { value: 'quarterly', label: 'Trimestral', divisor: 3 },
-            { value: 'semiannual', label: 'Semestral', divisor: 6 },
-            { value: 'annual', label: 'Anual', divisor: 12 },
-            { value: 'biannual', label: 'Bianual', divisor: 24 }
-        ];
-
-        const expenseTypes = [
-            { value: 'fixed', label: '📅 Fixed (with due date)' },
-            { value: 'reserve', label: '💰 Reserve (no due date)' }
-        ];
+        const t = (key) => translations[currentLang][key] || key;
+        const getCategoryLabel = (cat) => cat.isDefault ? (currentLang === 'pt' ? cat.label : cat.labelEn) : cat.label;
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
+            if (user) { loadLanguage(); loadExpenses(); loadCustomCategories(); }
             render();
-            if (user) {
-                loadExpenses();
-                loadCustomCategories();
-            }
         });
 
+        async function loadLanguage() {
+            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'));
+            if (docSnap.exists() && docSnap.data().language) currentLang = docSnap.data().language;
+        }
+
+        async function saveLanguage(lang) {
+            currentLang = lang;
+            await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { language: lang }, { merge: true });
+            render();
+        }
+
         async function loadExpenses() {
-            const q = query(collection(db, `users/${currentUser.uid}/expenses`));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, `users/${currentUser.uid}/expenses`)), (snapshot) => {
                 expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 render();
                 updateTrendChart();
@@ -81,36 +75,19 @@
         }
 
         async function loadCustomCategories() {
-            const docRef = doc(db, `users/${currentUser.uid}/settings`, 'categories');
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                customCategories = docSnap.data().categories || [];
-                render();
-            }
+            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'categories'));
+            if (docSnap.exists()) customCategories = docSnap.data().categories || [];
         }
 
-        async function saveCustomCategories() {
-            await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'categories'), {
-                categories: customCategories
-            });
-        }
-
-        function getAllCategories() {
-            return [...defaultCategories, ...customCategories];
-        }
+        function getAllCategories() { return [...defaultCategories, ...customCategories]; }
 
         async function handleAuth(isLogin) {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             try {
-                if (isLogin) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } else {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
+                if (isLogin) await signInWithEmailAndPassword(auth, email, password);
+                else await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) { alert('Error: ' + error.message); }
         }
 
         async function addExpense(e) {
@@ -121,42 +98,24 @@
             const frequency = document.getElementById('frequency').value;
             const expenseType = document.getElementById('expenseType').value;
             const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('dueDay').value) : null;
-
-            const freqData = frequencies.find(f => f.value === frequency);
-            const monthlyAmount = amount / freqData.divisor;
-
+            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+            const monthlyAmount = amount / divisors[frequency];
             await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
-                description, 
-                amount, 
-                monthlyAmount,
-                category, 
-                frequency,
-                expenseType,
-                dueDay,
-                paymentHistory: {},
-                usageHistory: {},
-                createdAt: new Date().toISOString()
+                description, amount, monthlyAmount, category, frequency, expenseType, dueDay,
+                paymentHistory: {}, usageHistory: {}, createdAt: new Date().toISOString()
             });
             document.getElementById('expenseForm').reset();
         }
 
         function startEdit(expenseId) {
-    const expense = expenses.find(e => e.id === expenseId);
-    if (!expense) {
-        alert('Expense not found!');
-        return;
-    }
-    editingExpense = { ...expense };
-    if (!editingExpense.expenseType) {
-        editingExpense.expenseType = 'fixed';
-    }
-    render();
-        }
-
-        function cancelEdit() {
-            editingExpense = null;
+            const expense = expenses.find(e => e.id === expenseId);
+            if (!expense) { alert('Not found'); return; }
+            editingExpense = { ...expense };
+            if (!editingExpense.expenseType) editingExpense.expenseType = 'fixed';
             render();
         }
+
+        function cancelEdit() { editingExpense = null; render(); }
 
         async function saveEdit(e) {
             e.preventDefault();
@@ -166,159 +125,60 @@
             const frequency = document.getElementById('editFrequency').value;
             const expenseType = document.getElementById('editExpenseType').value;
             const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('editDueDay').value) : null;
-
-            const freqData = frequencies.find(f => f.value === frequency);
-            const monthlyAmount = amount / freqData.divisor;
-
+            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+            const monthlyAmount = amount / divisors[frequency];
             await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${editingExpense.id}`), {
-                description,
-                amount,
-                monthlyAmount,
-                category,
-                frequency,
-                expenseType,
-                dueDay
+                description, amount, monthlyAmount, category, frequency, expenseType, dueDay
             });
-
             editingExpense = null;
             render();
-        }
-
-        async function addCustomCategory(e) {
-            e.preventDefault();
-            const emoji = document.getElementById('categoryEmoji').value;
-            const name = document.getElementById('categoryName').value;
-            
-            if (!emoji || !name) {
-                alert('Please fill in all fields');
-                return;
-            }
-
-            const newCategory = {
-                value: 'custom_' + Date.now(),
-                label: `${emoji} ${name}`,
-                isDefault: false
-            };
-
-            customCategories.push(newCategory);
-            await saveCustomCategories();
-            
-            document.getElementById('categoryEmoji').value = '📌';
-            document.getElementById('categoryName').value = '';
-            showAddCategory = false;
-            render();
-        }
-
-        async function deleteCustomCategory(categoryValue) {
-            if (confirm('Delete this category? Expenses will be moved to "Others"')) {
-                customCategories = customCategories.filter(cat => cat.value !== categoryValue);
-                await saveCustomCategories();
-                
-                const expensesToUpdate = expenses.filter(exp => exp.category === categoryValue);
-                for (const exp of expensesToUpdate) {
-                    await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${exp.id}`), {
-                        category: 'outros'
-                    });
-                }
-                render();
-            }
         }
 
         async function togglePaid(expenseId, month, year) {
             const expense = expenses.find(e => e.id === expenseId);
             const key = `${year}-${month}`;
-            const newHistory = { ...expense.paymentHistory, [key]: !expense.paymentHistory[key] };
             await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
-                paymentHistory: newHistory
+                paymentHistory: { ...expense.paymentHistory, [key]: !expense.paymentHistory[key] }
             });
         }
 
         async function toggleUsed(expenseId, month, year) {
             const expense = expenses.find(e => e.id === expenseId);
             const key = `${year}-${month}`;
-            const newHistory = { ...expense.usageHistory, [key]: !expense.usageHistory[key] };
             await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
-                usageHistory: newHistory
+                usageHistory: { ...expense.usageHistory, [key]: !expense.usageHistory[key] }
             });
         }
 
         async function deleteExpense(expenseId) {
-            if (confirm('Delete expense?')) {
-                await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
-            }
+            if (confirm(t('delete') + '?')) await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
         }
 
         function updateTrendChart() {
             if (!currentUser || expenses.length === 0) return;
-
-            const now = new Date();
-            const last6Months = [];
-            const monthlyTotals = [];
-
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                
-                last6Months.push(monthName);
-                
-                const monthTotal = expenses.reduce((sum, exp) => {
-                    const displayAmount = exp.monthlyAmount || exp.amount;
-                    return sum + displayAmount;
-                }, 0);
-                
-                monthlyTotals.push(monthTotal.toFixed(2));
-            }
-
             const canvas = document.getElementById('trendChart');
             if (!canvas) return;
-
-            if (trendChartInstance) {
-                trendChartInstance.destroy();
+            const now = new Date();
+            const last6Months = [], monthlyTotals = [];
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                last6Months.push(date.toLocaleDateString(currentLang === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', year: 'numeric' }));
+                const total = expenses.reduce((sum, exp) => sum + (exp.monthlyAmount || exp.amount), 0);
+                monthlyTotals.push(total.toFixed(2));
             }
-
-            const ctx = canvas.getContext('2d');
-            trendChartInstance = new Chart(ctx, {
+            if (trendChartInstance) trendChartInstance.destroy();
+            trendChartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: last6Months,
-                    datasets: [{
-                        label: 'Monthly Total',
-                        data: monthlyTotals,
-                        borderColor: '#a78bfa',
-                        backgroundColor: 'rgba(167, 139, 250, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
+                    datasets: [{ label: t('monthlyTotal'), data: monthlyTotals, borderColor: '#a78bfa', backgroundColor: 'rgba(167, 139, 250, 0.1)', tension: 0.4, fill: true }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value;
-                                },
-                                color: '#9ca3af'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                color: '#9ca3af'
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }
+                        y: { beginAtZero: true, ticks: { callback: (v) => '$' + v, color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
                     }
                 }
             });
@@ -326,402 +186,64 @@
 
         function render() {
             const app = document.getElementById('app');
-            
             if (!currentUser) {
-                app.innerHTML = `
-                    <div class="min-h-screen flex items-center justify-center p-4 text-white">
-                        <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
-                            <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
-                            <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
-                            <div class="space-y-4">
-                                <input type="email" id="email" placeholder="Email" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
-                                <input type="password" id="password" placeholder="Password" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
-                                <button onclick="handleAuth(true)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg">LOGIN</button>
-                                <button onclick="handleAuth(false)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">CREATE ACCOUNT</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white"><div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6"><h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1><p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p><div class="space-y-4"><input type="email" id="email" placeholder="${t('email')}" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white"><input type="password" id="password" placeholder="${t('password')}" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white"><button onclick="handleAuth(true)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg">${t('login')}</button><button onclick="handleAuth(false)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">${t('createAccount')}</button></div></div></div>`;
                 return;
             }
-
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            
-            const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType).map(exp => {
-                const key = `${currentYear}-${currentMonth}`;
-                return { 
-                    ...exp, 
-                    isPaid: exp.paymentHistory?.[key] || false,
-                    displayAmount: exp.monthlyAmount || exp.amount
-                };
-            });
-
-            const reserves = expenses.filter(exp => exp.expenseType === 'reserve').map(exp => {
-                const key = `${currentYear}-${currentMonth}`;
-                return {
-                    ...exp,
-                    isUsed: exp.usageHistory?.[key] || false,
-                    displayAmount: exp.monthlyAmount || exp.amount,
-                    accumulated: calculateAccumulated(exp)
-                };
-            });
-
+            const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
+            const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType).map(exp => ({ ...exp, isPaid: exp.paymentHistory?.[`${currentYear}-${currentMonth}`] || false, displayAmount: exp.monthlyAmount || exp.amount }));
+            const reserves = expenses.filter(exp => exp.expenseType === 'reserve').map(exp => ({ ...exp, isUsed: exp.usageHistory?.[`${currentYear}-${currentMonth}`] || false, displayAmount: exp.monthlyAmount || exp.amount, accumulated: exp.displayAmount }));
             const fixedTotal = fixedExpenses.reduce((sum, exp) => sum + exp.displayAmount, 0);
             const reserveTotal = reserves.reduce((sum, exp) => sum + exp.displayAmount, 0);
             const monthTotal = fixedTotal + reserveTotal;
             const paidCount = fixedExpenses.filter(e => e.isPaid).length;
             const allCategories = getAllCategories();
 
-            app.innerHTML = `
-                <div class="min-h-screen text-white p-4">
-                    <div class="max-w-7xl mx-auto">
-                        <div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center">
-                            <div>
-                                <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
-                                <p class="text-xs text-gray-500">${APP_VERSION}</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="toggleSettings()" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 rounded-lg">⚙️</button>
-                                <button onclick="signOut(auth)" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg">Logout</button>
-                            </div>
-                        </div>
-
-                        ${showSettings ? `
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                            <h2 class="text-xl font-bold mb-4">⚙️ SETTINGS</h2>
-                            
-                            <div class="mb-6">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h3 class="text-lg font-semibold text-purple-300">Custom Categories</h3>
-                                    <button onclick="toggleAddCategory()" class="px-4 py-2 ${showAddCategory ? 'bg-red-600' : 'bg-blue-600'} hover:opacity-80 rounded-lg text-sm">
-                                        ${showAddCategory ? '✖ Cancel' : '➕ Add Category'}
-                                    </button>
-                                </div>
-
-                                ${showAddCategory ? `
-                                <form onsubmit="addCustomCategory(event)" class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
-                                    <div class="grid grid-cols-4 gap-3 mb-3">
-                                        <input type="text" id="categoryEmoji" placeholder="📌" maxlength="2" value="📌"
-                                            class="bg-black/50 border border-blue-500/50 rounded-lg px-2 py-2 text-white text-center text-2xl">
-                                        <input type="text" id="categoryName" placeholder="Category name" required
-                                            class="col-span-3 bg-black/50 border border-blue-500/50 rounded-lg px-4 py-2 text-white">
-                                    </div>
-                                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg">
-                                        ✅ Create
-                                    </button>
-                                </form>
-                                ` : ''}
-
-                                ${customCategories.length > 0 ? `
-                                <div class="space-y-2">
-                                    ${customCategories.map(cat => `
-                                        <div class="flex justify-between items-center p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                                            <span>${cat.label}</span>
-                                            <button onclick="deleteCustomCategory('${cat.value}')" 
-                                                class="px-3 py-1 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-300 rounded text-sm">
-                                                🗑️ Delete
-                                            </button>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                                ` : '<p class="text-gray-400 text-sm text-center py-4">No custom categories yet</p>'}
-                            </div>
-
-                            <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                                <p class="text-sm text-green-300 mb-2">✅ Connected to Firebase</p>
-                                <p class="text-xs text-gray-400">Project: ${firebaseConfig.projectId}</p>
-                                <p class="text-xs text-gray-400 mt-1">User: ${currentUser.email}</p>
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        <div class="grid md:grid-cols-3 gap-4 mb-4">
-                            <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
-                                <h3 class="text-sm text-purple-300 font-semibold mb-2">MONTHLY TOTAL</h3>
-                                <p class="text-4xl font-bold text-purple-400">$${monthTotal.toFixed(2)}</p>
-                                <div class="text-xs text-gray-400 mt-2 space-y-1">
-                                    <div>Fixed: $${fixedTotal.toFixed(2)}</div>
-                                    <div>Reserves: $${reserveTotal.toFixed(2)}</div>
-                                </div>
-                            </div>
-                            <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
-                                <h3 class="text-sm text-blue-300 font-semibold mb-2">FIXED EXPENSES</h3>
-                                <p class="text-4xl font-bold text-blue-400">${paidCount}/${fixedExpenses.length}</p>
-                                <p class="text-xs text-gray-400 mt-2">${Math.round((paidCount / (fixedExpenses.length || 1)) * 100)}% paid</p>
-                            </div>
-                            <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
-                                <h3 class="text-sm text-green-300 font-semibold mb-2">RESERVES</h3>
-                                <p class="text-4xl font-bold text-green-400">${reserves.length}</p>
-                                <p class="text-xs text-gray-400 mt-2">$${reserves.reduce((sum, r) => sum + r.accumulated, 0).toFixed(2)} accumulated</p>
-                            </div>
-                        </div>
-
-                        ${expenses.length > 0 ? `
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                            <h2 class="text-xl font-bold mb-4">📈 6-MONTH TREND</h2>
-                            <div style="height: 200px;">
-                                <canvas id="trendChart"></canvas>
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        ${editingExpense ? `
-                        <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
-                            <h2 class="text-xl font-bold mb-4">✏️ EDIT EXPENSE</h2>
-                            <form onsubmit="saveEdit(event)" class="space-y-3">
-                                <input type="text" id="editDescription" value="${editingExpense.description}" required 
-                                    class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                
-                                <div class="grid grid-cols-2 gap-3">
-                                    <input type="number" id="editAmount" value="${editingExpense.amount}" step="0.01" required 
-                                        class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    
-                                    <select id="editFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                        ${frequencies.map(freq => `<option value="${freq.value}" ${editingExpense.frequency === freq.value ? 'selected' : ''}>${freq.label}</option>`).join('')}
-                                    </select>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <select id="editCategory" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                        ${allCategories.map(cat => `<option value="${cat.value}" ${editingExpense.category === cat.value ? 'selected' : ''}>${cat.label}</option>`).join('')}
-                                    </select>
-                                    
-                                    <select id="editExpenseType" onchange="toggleDueDayEdit()" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                        ${expenseTypes.map(type => `<option value="${type.value}" ${editingExpense.expenseType === type.value ? 'selected' : ''}>${type.label}</option>`).join('')}
-                                    </select>
-                                </div>
-
-                                <div id="editDueDayContainer" ${editingExpense.expenseType === 'reserve' ? 'style="display:none;"' : ''}>
-                                    <input type="number" id="editDueDay" value="${editingExpense.dueDay || 1}" min="1" max="31" 
-                                        class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">
-                                        ❌ Cancel
-                                    </button>
-                                    <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">
-                                        💾 Save
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                        ` : `
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                            <h2 class="text-xl font-bold mb-4">➕ NEW EXPENSE</h2>
-                            <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
-                                <input type="text" id="description" placeholder="Description" required 
-                                    class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <input type="number" id="amount" placeholder="Amount ($)" step="0.01" required 
-                                        class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                    
-                                    <select id="frequency" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                        ${frequencies.map(freq => `<option value="${freq.value}">${freq.label}</option>`).join('')}
-                                    </select>
-                                    
-                                    <select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                        ${allCategories.map(cat => `<option value="${cat.value}">${cat.label}</option>`).join('')}
-                                    </select>
-                                    
-                                    <select id="expenseType" onchange="toggleDueDay()" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                        ${expenseTypes.map(type => `<option value="${type.value}">${type.label}</option>`).join('')}
-                                    </select>
-                                </div>
-
-                                <div id="dueDayContainer">
-                                    <input type="number" id="dueDay" placeholder="Due day (1-31)" min="1" max="31" required 
-                                        class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                </div>
-                                
-                                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 text-xs text-yellow-200">
-                                    💡 <strong>Fixed:</strong> Regular bills with due dates | <strong>Reserve:</strong> Savings for future expenses (no due date)
-                                </div>
-                                
-                                <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">
-                                    ✅ ADD EXPENSE
-                                </button>
-                            </form>
-                        </div>
-                        `}
-
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                            <h2 class="text-xl font-bold mb-4">📅 FIXED EXPENSES</h2>
-                            <div class="space-y-2">
-                                ${fixedExpenses.length === 0 ? '<p class="text-center text-gray-400 py-8">No fixed expenses</p>' : 
-                                fixedExpenses.map(exp => {
-                                    const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
-                                    const freq = frequencies.find(f => f.value === exp.frequency) || frequencies[0];
-                                    return `
-                                        <div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                                        <span>${cat.label}</span>
-                                                        <span class="text-xs px-2 py-1 bg-blue-500/20 rounded">${freq.label}</span>
-                                                        <span class="text-xs px-2 py-1 bg-purple-500/20 rounded">Day ${exp.dueDay}</span>
-                                                    </div>
-                                                    <p class="font-semibold text-white mb-1">${exp.description}</p>
-                                                    <div class="flex items-baseline gap-2">
-                                                        <p class="text-2xl font-bold text-purple-400">$${exp.displayAmount.toFixed(2)}/mo</p>
-                                                        ${exp.frequency !== 'monthly' ? `
-                                                            <span class="text-xs text-gray-400">(${freq.label}: $${exp.amount.toFixed(2)})</span>
-                                                        ` : ''}
-                                                    </div>
-                                                </div>
-                                                <div class="flex gap-2 flex-col">
-                                                    <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" 
-                                                        class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm hover:opacity-80">
-                                                        ${exp.isPaid ? '✓ Paid' : 'Pay'}
-                                                    </button>
-                                                    <button onclick="startEdit('${exp.id}')" 
-                                                        class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
-                                                        ✏️ Edit
-                                                    </button>
-                                                    <button onclick="deleteExpense('${exp.id}')" 
-                                                        class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-
-                        ${reserves.length > 0 ? `
-                        <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
-                            <h2 class="text-xl font-bold mb-4">💰 RESERVES (No Due Date)</h2>
-                            <div class="space-y-2">
-                                ${reserves.map(exp => {
-                                    const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
-                                    const freq = frequencies.find(f => f.value === exp.frequency) || frequencies[0];
-                                    return `
-                                        <div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}">
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                                        <span>${cat.label}</span>
-                                                        <span class="text-xs px-2 py-1 bg-green-500/20 rounded">${freq.label}</span>
-                                                        <span class="text-xs px-2 py-1 bg-yellow-500/20 rounded">💰 Reserve</span>
-                                                    </div>
-                                                    <p class="font-semibold text-white mb-1">${exp.description}</p>
-                                                    <div class="flex items-baseline gap-2">
-                                                        <p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p>
-                                                        ${exp.frequency !== 'monthly' ? `
-                                                            <span class="text-xs text-gray-400">(${freq.label}: $${exp.amount.toFixed(2)})</span>
-                                                        ` : ''}
-                                                    </div>
-                                                    <p class="text-sm text-green-300 mt-1">💰 Accumulated: $${exp.accumulated.toFixed(2)}</p>
-                                                </div>
-                                                <div class="flex gap-2 flex-col">
-                                                    <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" 
-                                                        class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm hover:opacity-80">
-                                                        ${exp.isUsed ? '✓ Used' : 'Mark Used'}
-                                                    </button>
-                                                    <button onclick="startEdit('${exp.id}')" 
-                                                        class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
-                                                        ✏️ Edit
-                                                    </button>
-                                                    <button onclick="deleteExpense('${exp.id}')" 
-                                                        class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        <div class="text-center text-gray-500 text-xs py-4 mt-4">
-                            <p>Finance HUD ${APP_VERSION} | Connected to Firebase</p>
-                            <p class="mt-1">✨ New: Edit expenses + Reserves system</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            setTimeout(() => {
-                if (expenses.length > 0) {
-                    updateTrendChart();
-                }
-            }, 100);
-        }
-
-        function calculateAccumulated(expense) {
-            if (!expense.usageHistory) return expense.displayAmount;
-            
-            const now = new Date();
-            const monthsSinceCreation = 1;
-            const monthlyAmount = expense.displayAmount;
-            const totalReserved = monthlyAmount * monthsSinceCreation;
-            
-            const timesUsed = Object.values(expense.usageHistory).filter(used => used).length;
-            const totalUsed = monthlyAmount * timesUsed;
-            
-            return Math.max(0, totalReserved - totalUsed);
+            app.innerHTML = `<div class="min-h-screen text-white p-4"><div class="max-w-7xl mx-auto"><div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center"><div><h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1><p class="text-xs text-gray-500">${APP_VERSION}</p></div><div class="flex gap-2"><button onclick="toggleLang()" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg text-sm">${currentLang === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}</button><button onclick="signOut(auth)" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm">${t('logout')}</button></div></div>
+            <div class="grid md:grid-cols-3 gap-4 mb-4"><div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6"><h3 class="text-sm text-purple-300 font-semibold mb-2">${t('monthlyTotal')}</h3><p class="text-4xl font-bold text-purple-400">$${monthTotal.toFixed(2)}</p></div><div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6"><h3 class="text-sm text-blue-300 font-semibold mb-2">${t('fixedExpenses')}</h3><p class="text-4xl font-bold text-blue-400">${paidCount}/${fixedExpenses.length}</p></div><div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6"><h3 class="text-sm text-green-300 font-semibold mb-2">${t('reserves')}</h3><p class="text-4xl font-bold text-green-400">${reserves.length}</p></div></div>
+            ${expenses.length > 0 ? `<div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4"><h2 class="text-xl font-bold mb-4">📈 ${t('trend')}</h2><div style="height:200px;"><canvas id="trendChart"></canvas></div></div>` : ''}
+            ${!editingExpense ? `<div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4"><h2 class="text-xl font-bold mb-4">➕ ${t('newExpense')}</h2><form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3"><input type="text" id="description" placeholder="${t('description')}" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white"><div class="grid grid-cols-2 md:grid-cols-4 gap-3"><input type="number" id="amount" placeholder="${t('amount')}" step="0.01" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white"><select id="frequency" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white"><option value="monthly">${t('monthly')}</option><option value="quarterly">${t('quarterly')}</option><option value="semiannual">${t('semiannual')}</option><option value="annual">${t('annual')}</option><option value="biannual">${t('biannual')}</option></select><select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">${allCategories.map(cat => `<option value="${cat.value}">${getCategoryLabel(cat)}</option>`).join('')}</select><select id="expenseType" onchange="toggleDueDay()" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white"><option value="fixed">📅 ${t('fixed')}</option><option value="reserve">💰 ${t('reserve')}</option></select></div><div id="dueDayContainer"><input type="number" id="dueDay" placeholder="${t('dueDay')}" min="1" max="31" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white"></div><button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">✅ ${t('add')}</button></form></div>` : `<div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4"><h2 class="text-xl font-bold mb-4">✏️ ${t('editExpense')}</h2><form onsubmit="saveEdit(event)" class="space-y-3"><input type="text" id="editDescription" value="${editingExpense.description}" required class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white"><div class="grid grid-cols-2 gap-3"><input type="number" id="editAmount" value="${editingExpense.amount}" step="0.01" required class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white"><select id="editFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white"><option value="monthly" ${editingExpense.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option><option value="quarterly" ${editingExpense.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option><option value="semiannual" ${editingExpense.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option><option value="annual" ${editingExpense.frequency === 'annual' ? 'selected' : ''}>${t('annual')}</option><option value="biannual" ${editingExpense.frequency === 'biannual' ? 'selected' : ''}>${t('biannual')}</option></select></div><div class="grid grid-cols-2 gap-3"><select id="editCategory" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">${allCategories.map(cat => `<option value="${cat.value}" ${editingExpense.category === cat.value ? 'selected' : ''}>${getCategoryLabel(cat)}</option>`).join('')}</select><select id="editExpenseType" onchange="toggleDueDayEdit()" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white"><option value="fixed" ${editingExpense.expenseType === 'fixed' ? 'selected' : ''}>📅 ${t('fixed')}</option><option value="reserve" ${editingExpense.expenseType === 'reserve' ? 'selected' : ''}>💰 ${t('reserve')}</option></select></div><div id="editDueDayContainer" ${editingExpense.expenseType === 'reserve' ? 'style="display:none;"' : ''}><input type="number" id="editDueDay" value="${editingExpense.dueDay || 1}" min="1" max="31" class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white"></div><div class="grid grid-cols-2 gap-3"><button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">❌ ${t('cancel')}</button><button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">💾 ${t('save')}</button></div></form></div>`}
+            <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4"><h2 class="text-xl font-bold mb-4">📅 ${t('fixedList')}</h2><div class="space-y-2">${fixedExpenses.length === 0 ? `<p class="text-center text-gray-400 py-8">${t('noFixed')}</p>` : fixedExpenses.map(exp => {
+                const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
+                return `<div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}"><div class="flex justify-between items-start"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span>${getCategoryLabel(cat)}</span><span class="text-xs px-2 py-1 bg-blue-500/20 rounded">${t(exp.frequency || 'monthly')}</span><span class="text-xs px-2 py-1 bg-purple-500/20 rounded">${t('day')} ${exp.dueDay}</span></div><p class="font-semibold text-white mb-1">${exp.description}</p><p class="text-2xl font-bold text-purple-400">$${exp.displayAmount.toFixed(2)}/mo</p></div><div class="flex gap-2 flex-col"><button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isPaid ? '✓' : t('pay')}</button><button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">✏️</button><button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button></div></div></div>`;
+            }).join('')}</div></div>
+            ${reserves.length > 0 ? `<div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6"><h2 class="text-xl font-bold mb-4">💰 ${t('reservesList')}</h2><div class="space-y-2">${reserves.map(exp => {
+                const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
+                return `<div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}"><div class="flex justify-between items-start"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span>${getCategoryLabel(cat)}</span><span class="text-xs px-2 py-1 bg-green-500/20 rounded">${t(exp.frequency || 'monthly')}</span></div><p class="font-semibold text-white mb-1">${exp.description}</p><p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p><p class="text-sm text-green-300 mt-1">💰 ${t('accumulated')}: $${exp.accumulated.toFixed(2)}</p></div><div class="flex gap-2 flex-col"><button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? '✓ ' + t('used') : t('markUsed')}</button><button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">✏️</button><button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button></div></div></div>`;
+            }).join('')}</div></div>` : ''}
+            <div class="text-center text-gray-500 text-xs py-4 mt-4"><p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? '✨ Novo: PT/EN + Edit' : '✨ New: PT/EN + Edit'}</p></div></div></div>`;
+            setTimeout(() => { if (expenses.length > 0) updateTrendChart(); }, 100);
         }
 
         function toggleDueDay() {
-            const expenseType = document.getElementById('expenseType').value;
+            const type = document.getElementById('expenseType').value;
             const container = document.getElementById('dueDayContainer');
-            const dueDayInput = document.getElementById('dueDay');
-            
-            if (expenseType === 'reserve') {
-                container.style.display = 'none';
-                dueDayInput.required = false;
-            } else {
-                container.style.display = 'block';
-                dueDayInput.required = true;
-            }
+            const input = document.getElementById('dueDay');
+            if (type === 'reserve') { container.style.display = 'none'; input.required = false; }
+            else { container.style.display = 'block'; input.required = true; }
         }
 
         function toggleDueDayEdit() {
-            const expenseType = document.getElementById('editExpenseType').value;
+            const type = document.getElementById('editExpenseType').value;
             const container = document.getElementById('editDueDayContainer');
-            const dueDayInput = document.getElementById('editDueDay');
-            
-            if (expenseType === 'reserve') {
-                container.style.display = 'none';
-                dueDayInput.required = false;
-            } else {
-                container.style.display = 'block';
-                dueDayInput.required = true;
-            }
+            const input = document.getElementById('editDueDay');
+            if (type === 'reserve') { container.style.display = 'none'; input.required = false; }
+            else { container.style.display = 'block'; input.required = true; }
         }
 
-        function toggleSettings() {
-            showSettings = !showSettings;
-            render();
-        }
-
-        function toggleAddCategory() {
-            showAddCategory = !showAddCategory;
-            render();
-        }
+        function toggleLang() { saveLanguage(currentLang === 'pt' ? 'en' : 'pt'); }
 
         window.handleAuth = handleAuth;
         window.addExpense = addExpense;
-        window.addCustomCategory = addCustomCategory;
-        window.deleteCustomCategory = deleteCustomCategory;
         window.togglePaid = togglePaid;
         window.toggleUsed = toggleUsed;
         window.deleteExpense = deleteExpense;
-        window.toggleSettings = toggleSettings;
-        window.toggleAddCategory = toggleAddCategory;
+        window.toggleLang = toggleLang;
         window.startEdit = startEdit;
         window.cancelEdit = cancelEdit;
         window.saveEdit = saveEdit;
         window.toggleDueDay = toggleDueDay;
         window.toggleDueDayEdit = toggleDueDayEdit;
-        
         render();
     </script>
 </body>
