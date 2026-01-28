@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance HUD - Gestão Financeira</title>
+    <title>Finance HUD - Gestão Financeira v1.1.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-purple-900 via-blue-900 to-black min-h-screen">
@@ -12,7 +12,9 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const APP_VERSION = 'v1.1.0';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
@@ -29,21 +31,35 @@
 
         let currentUser = null;
         let expenses = [];
+        let customCategories = [];
+        let showSettings = false;
+        let showAddCategory = false;
 
-        const categories = [
-            { value: 'moradia', label: '🏠 Moradia' },
-            { value: 'cartao', label: '💳 Cartões' },
-            { value: 'carro', label: '🚗 Carro' },
-            { value: 'alimentacao', label: '🍔 Alimentação' },
-            { value: 'lazer', label: '🎮 Lazer' },
-            { value: 'saude', label: '💊 Saúde' },
-            { value: 'outros', label: '📦 Outros' }
+        const defaultCategories = [
+            { value: 'moradia', label: '🏠 Moradia', isDefault: true },
+            { value: 'cartao', label: '💳 Cartões', isDefault: true },
+            { value: 'carro', label: '🚗 Carro', isDefault: true },
+            { value: 'alimentacao', label: '🍔 Alimentação', isDefault: true },
+            { value: 'lazer', label: '🎮 Lazer', isDefault: true },
+            { value: 'saude', label: '💊 Saúde', isDefault: true },
+            { value: 'outros', label: '📦 Outros', isDefault: true }
+        ];
+
+        const frequencies = [
+            { value: 'monthly', label: 'Mensal', divisor: 1 },
+            { value: 'quarterly', label: 'Trimestral', divisor: 3 },
+            { value: 'semiannual', label: 'Semestral', divisor: 6 },
+            { value: 'annual', label: 'Anual', divisor: 12 },
+            { value: 'biannual', label: 'Bianual', divisor: 24 }
         ];
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             render();
-            if (user) loadExpenses();
+            if (user) {
+                loadExpenses();
+                loadCustomCategories();
+            }
         });
 
         async function loadExpenses() {
@@ -52,6 +68,25 @@
                 expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 render();
             });
+        }
+
+        async function loadCustomCategories() {
+            const docRef = doc(db, `users/${currentUser.uid}/settings`, 'categories');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                customCategories = docSnap.data().categories || [];
+                render();
+            }
+        }
+
+        async function saveCustomCategories() {
+            await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'categories'), {
+                categories: customCategories
+            });
+        }
+
+        function getAllCategories() {
+            return [...defaultCategories, ...customCategories];
         }
 
         async function handleAuth(isLogin) {
@@ -64,7 +99,7 @@
                     await createUserWithEmailAndPassword(auth, email, password);
                 }
             } catch (error) {
-                alert('Erro: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
 
@@ -74,13 +109,62 @@
             const amount = parseFloat(document.getElementById('amount').value);
             const category = document.getElementById('category').value;
             const dueDay = parseInt(document.getElementById('dueDay').value);
+            const frequency = document.getElementById('frequency').value;
+
+            const freqData = frequencies.find(f => f.value === frequency);
+            const monthlyAmount = amount / freqData.divisor;
 
             await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
-                description, amount, category, dueDay,
+                description, 
+                amount, 
+                monthlyAmount,
+                category, 
+                dueDay,
+                frequency,
                 paymentHistory: {},
                 createdAt: new Date().toISOString()
             });
             document.getElementById('expenseForm').reset();
+        }
+
+        async function addCustomCategory(e) {
+            e.preventDefault();
+            const emoji = document.getElementById('categoryEmoji').value;
+            const name = document.getElementById('categoryName').value;
+            
+            if (!emoji || !name) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const newCategory = {
+                value: 'custom_' + Date.now(),
+                label: `${emoji} ${name}`,
+                isDefault: false
+            };
+
+            customCategories.push(newCategory);
+            await saveCustomCategories();
+            
+            document.getElementById('categoryEmoji').value = '📌';
+            document.getElementById('categoryName').value = '';
+            showAddCategory = false;
+            render();
+        }
+
+        async function deleteCustomCategory(categoryValue) {
+            if (confirm('Delete this category? Expenses will be moved to "Others"')) {
+                customCategories = customCategories.filter(cat => cat.value !== categoryValue);
+                await saveCustomCategories();
+                
+                const expensesToUpdate = expenses.filter(exp => exp.category === categoryValue);
+                for (const exp of expensesToUpdate) {
+                    await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${exp.id}`), {
+                        category: 'outros'
+                    });
+                }
+                render();
+            }
         }
 
         async function togglePaid(expenseId, month, year) {
@@ -93,111 +177,226 @@
         }
 
         async function deleteExpense(expenseId) {
-            if (confirm('Excluir?')) {
+            if (confirm('Delete expense?')) {
                 await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
             }
         }
 
         function render() {
             const app = document.getElementById('app');
+            
             if (!currentUser) {
                 app.innerHTML = `
                     <div class="min-h-screen flex items-center justify-center p-4 text-white">
                         <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
-                            <h1 class="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
+                            <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
+                            <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
                             <div class="space-y-4">
                                 <input type="email" id="email" placeholder="Email" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
-                                <input type="password" id="password" placeholder="Senha" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
-                                <button onclick="handleAuth(true)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg">ENTRAR</button>
-                                <button onclick="handleAuth(false)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">CRIAR CONTA</button>
+                                <input type="password" id="password" placeholder="Password" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
+                                <button onclick="handleAuth(true)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg">LOGIN</button>
+                                <button onclick="handleAuth(false)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">CREATE ACCOUNT</button>
                             </div>
                         </div>
                     </div>
                 `;
-            } else {
-                const now = new Date();
-                const currentMonth = now.getMonth();
-                const currentYear = now.getFullYear();
-                
-                const monthExpenses = expenses.map(exp => {
-                    const key = `${currentYear}-${currentMonth}`;
-                    return { ...exp, isPaid: exp.paymentHistory?.[key] || false };
-                });
+                return;
+            }
 
-                const monthTotal = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-                const paidCount = monthExpenses.filter(e => e.isPaid).length;
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            const monthExpenses = expenses.map(exp => {
+                const key = `${currentYear}-${currentMonth}`;
+                return { 
+                    ...exp, 
+                    isPaid: exp.paymentHistory?.[key] || false,
+                    displayAmount: exp.monthlyAmount || exp.amount
+                };
+            });
 
-                app.innerHTML = `
-                    <div class="min-h-screen text-white p-4">
-                        <div class="max-w-7xl mx-auto">
-                            <div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center">
+            const monthTotal = monthExpenses.reduce((sum, exp) => sum + exp.displayAmount, 0);
+            const paidCount = monthExpenses.filter(e => e.isPaid).length;
+            const allCategories = getAllCategories();
+
+            app.innerHTML = `
+                <div class="min-h-screen text-white p-4">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center">
+                            <div>
                                 <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
-                                <button onclick="signOut(auth)" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg">Sair</button>
+                                <p class="text-xs text-gray-500">${APP_VERSION}</p>
                             </div>
-
-                            <div class="grid md:grid-cols-2 gap-4 mb-4">
-                                <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
-                                    <h3 class="text-sm text-purple-300 font-semibold mb-2">TOTAL DO MÊS</h3>
-                                    <p class="text-4xl font-bold text-purple-400">$${monthTotal.toFixed(2)}</p>
-                                </div>
-                                <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
-                                    <h3 class="text-sm text-blue-300 font-semibold mb-2">PAGAS</h3>
-                                    <p class="text-4xl font-bold text-blue-400">${paidCount}/${monthExpenses.length}</p>
-                                </div>
+                            <div class="flex gap-2">
+                                <button onclick="toggleSettings()" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 rounded-lg">⚙️</button>
+                                <button onclick="signOut(auth)" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg">Logout</button>
                             </div>
+                        </div>
 
-                            <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                                <h2 class="text-xl font-bold mb-4">➕ NOVA DESPESA</h2>
-                                <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
-                                    <input type="text" id="description" placeholder="Descrição" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                    <div class="grid grid-cols-3 gap-3">
-                                        <input type="number" id="amount" placeholder="Valor" step="0.01" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                        <select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                            ${categories.map(cat => `<option value="${cat.value}">${cat.label}</option>`).join('')}
-                                        </select>
-                                        <input type="number" id="dueDay" placeholder="Dia" min="1" max="31" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                        ${showSettings ? `
+                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+                            <h2 class="text-xl font-bold mb-4">⚙️ SETTINGS</h2>
+                            
+                            <div class="mb-6">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h3 class="text-lg font-semibold text-purple-300">Custom Categories</h3>
+                                    <button onclick="toggleAddCategory()" class="px-4 py-2 ${showAddCategory ? 'bg-red-600' : 'bg-blue-600'} hover:opacity-80 rounded-lg text-sm">
+                                        ${showAddCategory ? '✖ Cancel' : '➕ Add Category'}
+                                    </button>
+                                </div>
+
+                                ${showAddCategory ? `
+                                <form onsubmit="addCustomCategory(event)" class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                                    <div class="grid grid-cols-4 gap-3 mb-3">
+                                        <input type="text" id="categoryEmoji" placeholder="📌" maxlength="2" value="📌"
+                                            class="bg-black/50 border border-blue-500/50 rounded-lg px-2 py-2 text-white text-center text-2xl">
+                                        <input type="text" id="categoryName" placeholder="Category name" required
+                                            class="col-span-3 bg-black/50 border border-blue-500/50 rounded-lg px-4 py-2 text-white">
                                     </div>
-                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">✅ ADICIONAR</button>
+                                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg">
+                                        ✅ Create
+                                    </button>
                                 </form>
+                                ` : ''}
+
+                                ${customCategories.length > 0 ? `
+                                <div class="space-y-2">
+                                    ${customCategories.map(cat => `
+                                        <div class="flex justify-between items-center p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                                            <span>${cat.label}</span>
+                                            <button onclick="deleteCustomCategory('${cat.value}')" 
+                                                class="px-3 py-1 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-300 rounded text-sm">
+                                                🗑️ Delete
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ` : '<p class="text-gray-400 text-sm text-center py-4">No custom categories yet</p>'}
                             </div>
 
+                            <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                                <p class="text-sm text-green-300 mb-2">✅ Connected to Firebase</p>
+                                <p class="text-xs text-gray-400">Project: ${firebaseConfig.projectId}</p>
+                                <p class="text-xs text-gray-400 mt-1">User: ${currentUser.email}</p>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="grid md:grid-cols-2 gap-4 mb-4">
                             <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
-                                <h2 class="text-xl font-bold mb-4">📝 DESPESAS</h2>
-                                <div class="space-y-2">
-                                    ${monthExpenses.length === 0 ? '<p class="text-center text-gray-400 py-8">Nenhuma despesa</p>' : 
-                                    monthExpenses.map(exp => {
-                                        const cat = categories.find(c => c.value === exp.category);
-                                        return `
-                                            <div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
-                                                <div class="flex justify-between items-start">
-                                                    <div>
+                                <h3 class="text-sm text-purple-300 font-semibold mb-2">MONTHLY TOTAL</h3>
+                                <p class="text-4xl font-bold text-purple-400">$${monthTotal.toFixed(2)}</p>
+                                <p class="text-xs text-gray-400 mt-2">Converted to monthly equivalent</p>
+                            </div>
+                            <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
+                                <h3 class="text-sm text-blue-300 font-semibold mb-2">PAID STATUS</h3>
+                                <p class="text-4xl font-bold text-blue-400">${paidCount}/${monthExpenses.length}</p>
+                                <p class="text-xs text-gray-400 mt-2">${Math.round((paidCount / (monthExpenses.length || 1)) * 100)}% completed</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+                            <h2 class="text-xl font-bold mb-4">➕ NEW EXPENSE</h2>
+                            <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
+                                <input type="text" id="description" placeholder="Description" required 
+                                    class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <input type="number" id="amount" placeholder="Amount ($)" step="0.01" required 
+                                        class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                    
+                                    <select id="frequency" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                        ${frequencies.map(freq => `<option value="${freq.value}">${freq.label}</option>`).join('')}
+                                    </select>
+                                    
+                                    <select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                        ${allCategories.map(cat => `<option value="${cat.value}">${cat.label}</option>`).join('')}
+                                    </select>
+                                    
+                                    <input type="number" id="dueDay" placeholder="Due day" min="1" max="31" required 
+                                        class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                </div>
+                                
+                                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 text-xs text-yellow-200">
+                                    💡 The system will automatically convert non-monthly expenses to monthly amounts
+                                </div>
+                                
+                                <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">
+                                    ✅ ADD EXPENSE
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
+                            <h2 class="text-xl font-bold mb-4">📝 EXPENSES</h2>
+                            <div class="space-y-2">
+                                ${monthExpenses.length === 0 ? '<p class="text-center text-gray-400 py-8">No expenses yet</p>' : 
+                                monthExpenses.map(exp => {
+                                    const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
+                                    const freq = frequencies.find(f => f.value === exp.frequency) || frequencies[0];
+                                    return `
+                                        <div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
                                                         <span>${cat.label}</span>
-                                                        <p class="font-semibold">${exp.description}</p>
-                                                        <p class="text-2xl font-bold text-purple-400">$${exp.amount.toFixed(2)}</p>
-                                                        <p class="text-xs text-gray-400">Dia ${exp.dueDay}</p>
+                                                        <span class="text-xs px-2 py-1 bg-blue-500/20 rounded">${freq.label}</span>
+                                                        <span class="text-xs px-2 py-1 bg-purple-500/20 rounded">Day ${exp.dueDay}</span>
                                                     </div>
-                                                    <div class="flex gap-2">
-                                                        <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">
-                                                            ${exp.isPaid ? '✓' : 'Pagar'}
-                                                        </button>
-                                                        <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button>
+                                                    <p class="font-semibold text-white mb-1">${exp.description}</p>
+                                                    <div class="flex items-baseline gap-2">
+                                                        <p class="text-2xl font-bold text-purple-400">$${exp.displayAmount.toFixed(2)}/mo</p>
+                                                        ${exp.frequency !== 'monthly' ? `
+                                                            <span class="text-xs text-gray-400">(${freq.label}: $${exp.amount.toFixed(2)})</span>
+                                                        ` : ''}
                                                     </div>
                                                 </div>
+                                                <div class="flex gap-2">
+                                                    <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" 
+                                                        class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm hover:opacity-80">
+                                                        ${exp.isPaid ? '✓ Paid' : 'Pay'}
+                                                    </button>
+                                                    <button onclick="deleteExpense('${exp.id}')" 
+                                                        class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </div>
-                                        `;
-                                    }).join('')}
-                                </div>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
+
+                        <div class="text-center text-gray-500 text-xs py-4 mt-4">
+                            <p>Finance HUD ${APP_VERSION} | Connected to Firebase</p>
+                            <p class="mt-1">Deployed on GitHub Pages</p>
+                        </div>
                     </div>
-                `;
-            }
+                </div>
+            `;
+        }
+
+        function toggleSettings() {
+            showSettings = !showSettings;
+            render();
+        }
+
+        function toggleAddCategory() {
+            showAddCategory = !showAddCategory;
+            render();
         }
 
         window.handleAuth = handleAuth;
         window.addExpense = addExpense;
+        window.addCustomCategory = addCustomCategory;
+        window.deleteCustomCategory = deleteCustomCategory;
         window.togglePaid = togglePaid;
         window.deleteExpense = deleteExpense;
+        window.toggleSettings = toggleSettings;
+        window.toggleAddCategory = toggleAddCategory;
+        
         render();
     </script>
 </body>
