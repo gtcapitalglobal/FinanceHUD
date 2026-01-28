@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance HUD - Gestão Financeira v1.1.0</title>
+    <title>Finance HUD - Gestão Financeira v1.2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-purple-900 via-blue-900 to-black min-h-screen">
     <div id="app"></div>
+    <canvas id="trendChart" style="display:none;"></canvas>
     
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const APP_VERSION = 'v1.1.0';
+        const APP_VERSION = 'v1.2.0';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
@@ -34,6 +36,8 @@
         let customCategories = [];
         let showSettings = false;
         let showAddCategory = false;
+        let editingExpense = null;
+        let trendChartInstance = null;
 
         const defaultCategories = [
             { value: 'moradia', label: '🏠 Moradia', isDefault: true },
@@ -53,6 +57,11 @@
             { value: 'biannual', label: 'Bianual', divisor: 24 }
         ];
 
+        const expenseTypes = [
+            { value: 'fixed', label: '📅 Fixed (with due date)' },
+            { value: 'reserve', label: '💰 Reserve (no due date)' }
+        ];
+
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             render();
@@ -67,6 +76,7 @@
             onSnapshot(q, (snapshot) => {
                 expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 render();
+                updateTrendChart();
             });
         }
 
@@ -108,8 +118,9 @@
             const description = document.getElementById('description').value;
             const amount = parseFloat(document.getElementById('amount').value);
             const category = document.getElementById('category').value;
-            const dueDay = parseInt(document.getElementById('dueDay').value);
             const frequency = document.getElementById('frequency').value;
+            const expenseType = document.getElementById('expenseType').value;
+            const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('dueDay').value) : null;
 
             const freqData = frequencies.find(f => f.value === frequency);
             const monthlyAmount = amount / freqData.divisor;
@@ -119,12 +130,50 @@
                 amount, 
                 monthlyAmount,
                 category, 
-                dueDay,
                 frequency,
+                expenseType,
+                dueDay,
                 paymentHistory: {},
+                usageHistory: {},
                 createdAt: new Date().toISOString()
             });
             document.getElementById('expenseForm').reset();
+        }
+
+        function startEdit(expenseId) {
+            editingExpense = expenses.find(e => e.id === expenseId);
+            render();
+        }
+
+        function cancelEdit() {
+            editingExpense = null;
+            render();
+        }
+
+        async function saveEdit(e) {
+            e.preventDefault();
+            const description = document.getElementById('editDescription').value;
+            const amount = parseFloat(document.getElementById('editAmount').value);
+            const category = document.getElementById('editCategory').value;
+            const frequency = document.getElementById('editFrequency').value;
+            const expenseType = document.getElementById('editExpenseType').value;
+            const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('editDueDay').value) : null;
+
+            const freqData = frequencies.find(f => f.value === frequency);
+            const monthlyAmount = amount / freqData.divisor;
+
+            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${editingExpense.id}`), {
+                description,
+                amount,
+                monthlyAmount,
+                category,
+                frequency,
+                expenseType,
+                dueDay
+            });
+
+            editingExpense = null;
+            render();
         }
 
         async function addCustomCategory(e) {
@@ -176,10 +225,95 @@
             });
         }
 
+        async function toggleUsed(expenseId, month, year) {
+            const expense = expenses.find(e => e.id === expenseId);
+            const key = `${year}-${month}`;
+            const newHistory = { ...expense.usageHistory, [key]: !expense.usageHistory[key] };
+            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
+                usageHistory: newHistory
+            });
+        }
+
         async function deleteExpense(expenseId) {
             if (confirm('Delete expense?')) {
                 await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
             }
+        }
+
+        function updateTrendChart() {
+            if (!currentUser || expenses.length === 0) return;
+
+            const now = new Date();
+            const last6Months = [];
+            const monthlyTotals = [];
+
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                
+                last6Months.push(monthName);
+                
+                const monthTotal = expenses.reduce((sum, exp) => {
+                    const displayAmount = exp.monthlyAmount || exp.amount;
+                    return sum + displayAmount;
+                }, 0);
+                
+                monthlyTotals.push(monthTotal.toFixed(2));
+            }
+
+            const canvas = document.getElementById('trendChart');
+            if (!canvas) return;
+
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
+            }
+
+            const ctx = canvas.getContext('2d');
+            trendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: last6Months,
+                    datasets: [{
+                        label: 'Monthly Total',
+                        data: monthlyTotals,
+                        borderColor: '#a78bfa',
+                        backgroundColor: 'rgba(167, 139, 250, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                },
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function render() {
@@ -207,7 +341,7 @@
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
             
-            const monthExpenses = expenses.map(exp => {
+            const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType).map(exp => {
                 const key = `${currentYear}-${currentMonth}`;
                 return { 
                     ...exp, 
@@ -216,8 +350,20 @@
                 };
             });
 
-            const monthTotal = monthExpenses.reduce((sum, exp) => sum + exp.displayAmount, 0);
-            const paidCount = monthExpenses.filter(e => e.isPaid).length;
+            const reserves = expenses.filter(exp => exp.expenseType === 'reserve').map(exp => {
+                const key = `${currentYear}-${currentMonth}`;
+                return {
+                    ...exp,
+                    isUsed: exp.usageHistory?.[key] || false,
+                    displayAmount: exp.monthlyAmount || exp.amount,
+                    accumulated: calculateAccumulated(exp)
+                };
+            });
+
+            const fixedTotal = fixedExpenses.reduce((sum, exp) => sum + exp.displayAmount, 0);
+            const reserveTotal = reserves.reduce((sum, exp) => sum + exp.displayAmount, 0);
+            const monthTotal = fixedTotal + reserveTotal;
+            const paidCount = fixedExpenses.filter(e => e.isPaid).length;
             const allCategories = getAllCategories();
 
             app.innerHTML = `
@@ -283,19 +429,78 @@
                         </div>
                         ` : ''}
 
-                        <div class="grid md:grid-cols-2 gap-4 mb-4">
+                        <div class="grid md:grid-cols-3 gap-4 mb-4">
                             <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
                                 <h3 class="text-sm text-purple-300 font-semibold mb-2">MONTHLY TOTAL</h3>
                                 <p class="text-4xl font-bold text-purple-400">$${monthTotal.toFixed(2)}</p>
-                                <p class="text-xs text-gray-400 mt-2">Converted to monthly equivalent</p>
+                                <div class="text-xs text-gray-400 mt-2 space-y-1">
+                                    <div>Fixed: $${fixedTotal.toFixed(2)}</div>
+                                    <div>Reserves: $${reserveTotal.toFixed(2)}</div>
+                                </div>
                             </div>
                             <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
-                                <h3 class="text-sm text-blue-300 font-semibold mb-2">PAID STATUS</h3>
-                                <p class="text-4xl font-bold text-blue-400">${paidCount}/${monthExpenses.length}</p>
-                                <p class="text-xs text-gray-400 mt-2">${Math.round((paidCount / (monthExpenses.length || 1)) * 100)}% completed</p>
+                                <h3 class="text-sm text-blue-300 font-semibold mb-2">FIXED EXPENSES</h3>
+                                <p class="text-4xl font-bold text-blue-400">${paidCount}/${fixedExpenses.length}</p>
+                                <p class="text-xs text-gray-400 mt-2">${Math.round((paidCount / (fixedExpenses.length || 1)) * 100)}% paid</p>
+                            </div>
+                            <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
+                                <h3 class="text-sm text-green-300 font-semibold mb-2">RESERVES</h3>
+                                <p class="text-4xl font-bold text-green-400">${reserves.length}</p>
+                                <p class="text-xs text-gray-400 mt-2">$${reserves.reduce((sum, r) => sum + r.accumulated, 0).toFixed(2)} accumulated</p>
                             </div>
                         </div>
 
+                        ${expenses.length > 0 ? `
+                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+                            <h2 class="text-xl font-bold mb-4">📈 6-MONTH TREND</h2>
+                            <div style="height: 200px;">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        ${editingExpense ? `
+                        <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
+                            <h2 class="text-xl font-bold mb-4">✏️ EDIT EXPENSE</h2>
+                            <form onsubmit="saveEdit(event)" class="space-y-3">
+                                <input type="text" id="editDescription" value="${editingExpense.description}" required 
+                                    class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="number" id="editAmount" value="${editingExpense.amount}" step="0.01" required 
+                                        class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                    
+                                    <select id="editFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                        ${frequencies.map(freq => `<option value="${freq.value}" ${editingExpense.frequency === freq.value ? 'selected' : ''}>${freq.label}</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <select id="editCategory" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                        ${allCategories.map(cat => `<option value="${cat.value}" ${editingExpense.category === cat.value ? 'selected' : ''}>${cat.label}</option>`).join('')}
+                                    </select>
+                                    
+                                    <select id="editExpenseType" onchange="toggleDueDayEdit()" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                        ${expenseTypes.map(type => `<option value="${type.value}" ${editingExpense.expenseType === type.value ? 'selected' : ''}>${type.label}</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                <div id="editDueDayContainer" ${editingExpense.expenseType === 'reserve' ? 'style="display:none;"' : ''}>
+                                    <input type="number" id="editDueDay" value="${editingExpense.dueDay || 1}" min="1" max="31" 
+                                        class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">
+                                        ❌ Cancel
+                                    </button>
+                                    <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">
+                                        💾 Save
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        ` : `
                         <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
                             <h2 class="text-xl font-bold mb-4">➕ NEW EXPENSE</h2>
                             <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
@@ -314,12 +519,18 @@
                                         ${allCategories.map(cat => `<option value="${cat.value}">${cat.label}</option>`).join('')}
                                     </select>
                                     
-                                    <input type="number" id="dueDay" placeholder="Due day" min="1" max="31" required 
-                                        class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                    <select id="expenseType" onchange="toggleDueDay()" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                        ${expenseTypes.map(type => `<option value="${type.value}">${type.label}</option>`).join('')}
+                                    </select>
+                                </div>
+
+                                <div id="dueDayContainer">
+                                    <input type="number" id="dueDay" placeholder="Due day (1-31)" min="1" max="31" required 
+                                        class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
                                 </div>
                                 
                                 <div class="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 text-xs text-yellow-200">
-                                    💡 The system will automatically convert non-monthly expenses to monthly amounts
+                                    💡 <strong>Fixed:</strong> Regular bills with due dates | <strong>Reserve:</strong> Savings for future expenses (no due date)
                                 </div>
                                 
                                 <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">
@@ -327,12 +538,13 @@
                                 </button>
                             </form>
                         </div>
+                        `}
 
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
-                            <h2 class="text-xl font-bold mb-4">📝 EXPENSES</h2>
+                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+                            <h2 class="text-xl font-bold mb-4">📅 FIXED EXPENSES</h2>
                             <div class="space-y-2">
-                                ${monthExpenses.length === 0 ? '<p class="text-center text-gray-400 py-8">No expenses yet</p>' : 
-                                monthExpenses.map(exp => {
+                                ${fixedExpenses.length === 0 ? '<p class="text-center text-gray-400 py-8">No fixed expenses</p>' : 
+                                fixedExpenses.map(exp => {
                                     const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
                                     const freq = frequencies.find(f => f.value === exp.frequency) || frequencies[0];
                                     return `
@@ -352,10 +564,14 @@
                                                         ` : ''}
                                                     </div>
                                                 </div>
-                                                <div class="flex gap-2">
+                                                <div class="flex gap-2 flex-col">
                                                     <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" 
                                                         class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm hover:opacity-80">
                                                         ${exp.isPaid ? '✓ Paid' : 'Pay'}
+                                                    </button>
+                                                    <button onclick="startEdit('${exp.id}')" 
+                                                        class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
+                                                        ✏️ Edit
                                                     </button>
                                                     <button onclick="deleteExpense('${exp.id}')" 
                                                         class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
@@ -369,13 +585,108 @@
                             </div>
                         </div>
 
+                        ${reserves.length > 0 ? `
+                        <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
+                            <h2 class="text-xl font-bold mb-4">💰 RESERVES (No Due Date)</h2>
+                            <div class="space-y-2">
+                                ${reserves.map(exp => {
+                                    const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
+                                    const freq = frequencies.find(f => f.value === exp.frequency) || frequencies[0];
+                                    return `
+                                        <div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}">
+                                            <div class="flex justify-between items-start">
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                                        <span>${cat.label}</span>
+                                                        <span class="text-xs px-2 py-1 bg-green-500/20 rounded">${freq.label}</span>
+                                                        <span class="text-xs px-2 py-1 bg-yellow-500/20 rounded">💰 Reserve</span>
+                                                    </div>
+                                                    <p class="font-semibold text-white mb-1">${exp.description}</p>
+                                                    <div class="flex items-baseline gap-2">
+                                                        <p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p>
+                                                        ${exp.frequency !== 'monthly' ? `
+                                                            <span class="text-xs text-gray-400">(${freq.label}: $${exp.amount.toFixed(2)})</span>
+                                                        ` : ''}
+                                                    </div>
+                                                    <p class="text-sm text-green-300 mt-1">💰 Accumulated: $${exp.accumulated.toFixed(2)}</p>
+                                                </div>
+                                                <div class="flex gap-2 flex-col">
+                                                    <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" 
+                                                        class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm hover:opacity-80">
+                                                        ${exp.isUsed ? '✓ Used' : 'Mark Used'}
+                                                    </button>
+                                                    <button onclick="startEdit('${exp.id}')" 
+                                                        class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
+                                                        ✏️ Edit
+                                                    </button>
+                                                    <button onclick="deleteExpense('${exp.id}')" 
+                                                        class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:opacity-80">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+
                         <div class="text-center text-gray-500 text-xs py-4 mt-4">
                             <p>Finance HUD ${APP_VERSION} | Connected to Firebase</p>
-                            <p class="mt-1">Deployed on GitHub Pages</p>
+                            <p class="mt-1">✨ New: Edit expenses + Reserves system</p>
                         </div>
                     </div>
                 </div>
             `;
+
+            setTimeout(() => {
+                if (expenses.length > 0) {
+                    updateTrendChart();
+                }
+            }, 100);
+        }
+
+        function calculateAccumulated(expense) {
+            if (!expense.usageHistory) return expense.displayAmount;
+            
+            const now = new Date();
+            const monthsSinceCreation = 1;
+            const monthlyAmount = expense.displayAmount;
+            const totalReserved = monthlyAmount * monthsSinceCreation;
+            
+            const timesUsed = Object.values(expense.usageHistory).filter(used => used).length;
+            const totalUsed = monthlyAmount * timesUsed;
+            
+            return Math.max(0, totalReserved - totalUsed);
+        }
+
+        function toggleDueDay() {
+            const expenseType = document.getElementById('expenseType').value;
+            const container = document.getElementById('dueDayContainer');
+            const dueDayInput = document.getElementById('dueDay');
+            
+            if (expenseType === 'reserve') {
+                container.style.display = 'none';
+                dueDayInput.required = false;
+            } else {
+                container.style.display = 'block';
+                dueDayInput.required = true;
+            }
+        }
+
+        function toggleDueDayEdit() {
+            const expenseType = document.getElementById('editExpenseType').value;
+            const container = document.getElementById('editDueDayContainer');
+            const dueDayInput = document.getElementById('editDueDay');
+            
+            if (expenseType === 'reserve') {
+                container.style.display = 'none';
+                dueDayInput.required = false;
+            } else {
+                container.style.display = 'block';
+                dueDayInput.required = true;
+            }
         }
 
         function toggleSettings() {
@@ -393,9 +704,15 @@
         window.addCustomCategory = addCustomCategory;
         window.deleteCustomCategory = deleteCustomCategory;
         window.togglePaid = togglePaid;
+        window.toggleUsed = toggleUsed;
         window.deleteExpense = deleteExpense;
         window.toggleSettings = toggleSettings;
         window.toggleAddCategory = toggleAddCategory;
+        window.startEdit = startEdit;
+        window.cancelEdit = cancelEdit;
+        window.saveEdit = saveEdit;
+        window.toggleDueDay = toggleDueDay;
+        window.toggleDueDayEdit = toggleDueDayEdit;
         
         render();
     </script>
