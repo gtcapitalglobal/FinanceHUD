@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance HUD - Gestão Financeira</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-blue-900 to-black min-h-screen">
+    <div id="app"></div>
+    
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
+            authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
+            projectId: "gestao-pessoal-f2a6d",
+            storageBucket: "gestao-pessoal-f2a6d.firebasestorage.app",
+            messagingSenderId: "979106570809",
+            appId: "1:979106570809:web:4c09f578a99cd25407a3e8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let expenses = [];
+
+        const categories = [
+            { value: 'moradia', label: '🏠 Moradia' },
+            { value: 'cartao', label: '💳 Cartões' },
+            { value: 'carro', label: '🚗 Carro' },
+            { value: 'alimentacao', label: '🍔 Alimentação' },
+            { value: 'lazer', label: '🎮 Lazer' },
+            { value: 'saude', label: '💊 Saúde' },
+            { value: 'outros', label: '📦 Outros' }
+        ];
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            render();
+            if (user) loadExpenses();
+        });
+
+        async function loadExpenses() {
+            const q = query(collection(db, `users/${currentUser.uid}/expenses`));
+            onSnapshot(q, (snapshot) => {
+                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                render();
+            });
+        }
+
+        async function handleAuth(isLogin) {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                if (isLogin) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                alert('Erro: ' + error.message);
+            }
+        }
+
+        async function addExpense(e) {
+            e.preventDefault();
+            const description = document.getElementById('description').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const category = document.getElementById('category').value;
+            const dueDay = parseInt(document.getElementById('dueDay').value);
+
+            await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
+                description, amount, category, dueDay,
+                paymentHistory: {},
+                createdAt: new Date().toISOString()
+            });
+            document.getElementById('expenseForm').reset();
+        }
+
+        async function togglePaid(expenseId, month, year) {
+            const expense = expenses.find(e => e.id === expenseId);
+            const key = `${year}-${month}`;
+            const newHistory = { ...expense.paymentHistory, [key]: !expense.paymentHistory[key] };
+            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
+                paymentHistory: newHistory
+            });
+        }
+
+        async function deleteExpense(expenseId) {
+            if (confirm('Excluir?')) {
+                await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
+            }
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            if (!currentUser) {
+                app.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4 text-white">
+                        <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
+                            <h1 class="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
+                            <div class="space-y-4">
+                                <input type="email" id="email" placeholder="Email" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
+                                <input type="password" id="password" placeholder="Senha" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white">
+                                <button onclick="handleAuth(true)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg">ENTRAR</button>
+                                <button onclick="handleAuth(false)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">CRIAR CONTA</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                
+                const monthExpenses = expenses.map(exp => {
+                    const key = `${currentYear}-${currentMonth}`;
+                    return { ...exp, isPaid: exp.paymentHistory?.[key] || false };
+                });
+
+                const monthTotal = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+                const paidCount = monthExpenses.filter(e => e.isPaid).length;
+
+                app.innerHTML = `
+                    <div class="min-h-screen text-white p-4">
+                        <div class="max-w-7xl mx-auto">
+                            <div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center">
+                                <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">FINANCE HUD</h1>
+                                <button onclick="signOut(auth)" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg">Sair</button>
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
+                                    <h3 class="text-sm text-purple-300 font-semibold mb-2">TOTAL DO MÊS</h3>
+                                    <p class="text-4xl font-bold text-purple-400">$${monthTotal.toFixed(2)}</p>
+                                </div>
+                                <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
+                                    <h3 class="text-sm text-blue-300 font-semibold mb-2">PAGAS</h3>
+                                    <p class="text-4xl font-bold text-blue-400">${paidCount}/${monthExpenses.length}</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+                                <h2 class="text-xl font-bold mb-4">➕ NOVA DESPESA</h2>
+                                <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
+                                    <input type="text" id="description" placeholder="Descrição" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <input type="number" id="amount" placeholder="Valor" step="0.01" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                        <select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                            ${categories.map(cat => `<option value="${cat.value}">${cat.label}</option>`).join('')}
+                                        </select>
+                                        <input type="number" id="dueDay" placeholder="Dia" min="1" max="31" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                    </div>
+                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">✅ ADICIONAR</button>
+                                </form>
+                            </div>
+
+                            <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
+                                <h2 class="text-xl font-bold mb-4">📝 DESPESAS</h2>
+                                <div class="space-y-2">
+                                    ${monthExpenses.length === 0 ? '<p class="text-center text-gray-400 py-8">Nenhuma despesa</p>' : 
+                                    monthExpenses.map(exp => {
+                                        const cat = categories.find(c => c.value === exp.category);
+                                        return `
+                                            <div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
+                                                <div class="flex justify-between items-start">
+                                                    <div>
+                                                        <span>${cat.label}</span>
+                                                        <p class="font-semibold">${exp.description}</p>
+                                                        <p class="text-2xl font-bold text-purple-400">$${exp.amount.toFixed(2)}</p>
+                                                        <p class="text-xs text-gray-400">Dia ${exp.dueDay}</p>
+                                                    </div>
+                                                    <div class="flex gap-2">
+                                                        <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">
+                                                            ${exp.isPaid ? '✓' : 'Pagar'}
+                                                        </button>
+                                                        <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        window.handleAuth = handleAuth;
+        window.addExpense = addExpense;
+        window.togglePaid = togglePaid;
+        window.deleteExpense = deleteExpense;
+        render();
+    </script>
+</body>
+</html>
