@@ -108,7 +108,22 @@
                 freelance: 'Freelance',
                 investment: 'Investimento',
                 bonus: 'BÃ´nus',
-                other: 'Outros'
+                other: 'Outros',
+                // Previsão
+                forecast: 'PREVISÃO MENSAL',
+                projectedExpenses: 'Despesas Provisionadas',
+                projectedIncome: 'Receitas Previstas',
+                surplus: 'SUPERÁVIT',
+                deficit: 'DÉFICIT',
+                youNeed: 'VOCÊ PRECISA',
+                increaseIncome: 'Ganhar mais',
+                reduceExpenses: 'Cortar despesas',
+                topCategories: 'Maiores Gastos',
+                suggestions: 'Sugestões',
+                onTrack: 'Você está no caminho certo!',
+                savingExtra: 'Economizando além da meta',
+                closeToGoal: 'Faltam apenas',
+                toReachGoal: 'para bater sua meta',
             },
             en: { 
                 title: 'FINANCE HUD',
@@ -190,7 +205,22 @@
                 freelance: 'Freelance',
                 investment: 'Investment',
                 bonus: 'Bonus',
-                other: 'Other'
+                other: 'Other',
+                // Forecast
+                forecast: 'MONTHLY FORECAST',
+                projectedExpenses: 'Projected Expenses',
+                projectedIncome: 'Projected Income',
+                surplus: 'SURPLUS',
+                deficit: 'DEFICIT',
+                youNeed: 'YOU NEED TO',
+                increaseIncome: 'Earn more',
+                reduceExpenses: 'Cut expenses',
+                topCategories: 'Top Spending',
+                suggestions: 'Suggestions',
+                onTrack: 'You are on track!',
+                savingExtra: 'Saving beyond your goal',
+                closeToGoal: 'Only',
+                toReachGoal: 'away from your goal',
             }
         };
 
@@ -723,6 +753,64 @@
                             <div style="height:250px;"><canvas id="categoryChart"></canvas></div>
                         </div>
                         ` : ''}
+                    </div>
+
+
+                    <!-- Card de Previsão Mensal -->
+                    <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6 mb-4">
+                        <h2 class="text-xl font-bold mb-4">📊 \${t('forecast')}</h2>
+                        <div class="grid md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                                <p class="text-sm text-gray-400 mb-1">\${t('projectedExpenses')}</p>
+                                <p class="text-3xl font-bold text-red-400">$\${totalExpenses.toFixed(2)}</p>
+                            </div>
+                            <div class="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
+                                <p class="text-sm text-gray-400 mb-1">\${t('projectedIncome')}</p>
+                                <p class="text-3xl font-bold text-green-400">$\${totalIncome.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-lg border-2 \${balance >= 0 ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="text-3xl">\${balance >= 0 ? '✅' : '⚠️'}</span>
+                                <div>
+                                    <p class="text-sm text-gray-400">\${balance >= 0 ? t('surplus') : t('deficit')}</p>
+                                    <p class="text-3xl font-bold \${balance >= 0 ? 'text-green-400' : 'text-red-400'}">\${balance >= 0 ? '+' : ''}\${balance.toFixed(2)}/mês</p>
+                                </div>
+                            </div>
+                            \${balance < 0 ? \`
+                                <div class="mt-4 pt-4 border-t \${balance >= 0 ? 'border-green-500/30' : 'border-red-500/30'}">
+                                    <p class="font-semibold mb-3 flex items-center gap-2"><span>💡</span> \${t('youNeed')}:</p>
+                                    <div class="grid md:grid-cols-2 gap-3 text-sm">
+                                        <div class="p-3 bg-blue-500/10 rounded border border-blue-500/30">
+                                            <p class="font-semibold text-blue-300">💰 \${t('increaseIncome')}</p>
+                                            <p class="text-xl font-bold text-blue-400">+$\${Math.abs(balance).toFixed(2)}</p>
+                                        </div>
+                                        <div class="p-3 bg-purple-500/10 rounded border border-purple-500/30">
+                                            <p class="font-semibold text-purple-300">✂️ \${t('reduceExpenses')}</p>
+                                            <p class="text-xl font-bold text-purple-400">-$\${Math.abs(balance).toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            \` : savingsGoal > 0 ? \`
+                                <div class="mt-4 pt-4 border-t border-green-500/30">
+                                    \${balance >= savingsGoal ? \`
+                                        <p class="text-green-300 flex items-center gap-2">
+                                            <span>🎉</span>
+                                            <span>\${t('savingExtra')}! <strong>+$\${(balance - savingsGoal).toFixed(2)}</strong></span>
+                                        </p>
+                                    \` : \`
+                                        <p class="text-yellow-300 flex items-center gap-2">
+                                            <span>🎯</span>
+                                            <span>\${t('closeToGoal')} <strong>$\${(savingsGoal - balance).toFixed(2)}</strong> \${t('toReachGoal')}</span>
+                                        </p>
+                                    \`}
+                                </div>
+                            \` : \`
+                                <div class="mt-4 pt-4 border-t border-green-500/30">
+                                    <p class="text-green-300">💰 \${t('onTrack')}</p>
+                                </div>
+                            \`}
+                        </div>
                     </div>
 
                     <!-- Nova Receita -->
