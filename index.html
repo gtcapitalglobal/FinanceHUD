@@ -44,16 +44,16 @@
                 savingsGoal: 'META DE ECONOMIA',
                 // Receitas
                 newIncome: 'NOVA RECEITA',
-                incomeList: 'RECEITAS DO MÊS',
+                incomeList: 'RECEITAS DO MÃŠS',
                 noIncome: 'Nenhuma receita cadastrada',
                 // Despesas
                 monthlyTotal: 'TOTAL MENSAL',
                 accumulated: 'acumulado',
                 paid: 'pago',
-                trend: 'TENDÊNCIA 6 MESES',
+                trend: 'TENDÃŠNCIA 6 MESES',
                 categoryBreakdown: 'GASTOS POR CATEGORIA',
                 newExpense: 'NOVA DESPESA',
-                description: 'Descrição',
+                description: 'DescriÃ§Ã£o',
                 amount: 'Valor ($)',
                 dueDay: 'Dia (1-31)',
                 add: 'Adicionar',
@@ -62,8 +62,10 @@
                 pay: 'Pagar',
                 markUsed: 'Marcar Usado',
                 used: 'Usado',
-                fixed: 'Fixa (com vencimento)',
-                reserve: 'Reserva (sem vencimento)',
+                fixed: 'Data Fixa (Vencimento)',
+                reserve: 'Fazer Reserva (sem Vencimento)',
+                daily: 'Diário',
+                weekly: 'Semanal',
                 monthly: 'Mensal',
                 quarterly: 'Trimestral',
                 semiannual: 'Semestral',
@@ -77,8 +79,8 @@
                 editIncome: 'EDITAR RECEITA',
                 cancel: 'Cancelar',
                 save: 'Salvar',
-                // Automação
-                copyLastMonth: 'Copiar Mês Anterior',
+                // AutomaÃ§Ã£o
+                copyLastMonth: 'Copiar MÃªs Anterior',
                 importCSV: 'Importar CSV',
                 exportCSV: 'Exportar CSV',
                 // Metas
@@ -89,23 +91,23 @@
                 forgotPassword: 'Esqueci minha senha',
                 resetPassword: 'RECUPERAR SENHA',
                 backToLogin: 'Voltar ao login',
-                sendResetEmail: 'Enviar email de recuperação',
+                sendResetEmail: 'Enviar email de recuperaÃ§Ã£o',
                 loading: 'Carregando...',
                 // Erros
                 errorInvalidCredentials: 'Email ou senha incorretos',
-                errorUserNotFound: 'Email não cadastrado',
+                errorUserNotFound: 'Email nÃ£o cadastrado',
                 errorWeakPassword: 'A senha deve ter pelo menos 6 caracteres',
-                errorEmailInUse: 'Este email já está cadastrado',
-                errorInvalidEmail: 'Email inválido',
+                errorEmailInUse: 'Este email jÃ¡ estÃ¡ cadastrado',
+                errorInvalidEmail: 'Email invÃ¡lido',
                 errorGeneric: 'Erro ao processar. Tente novamente.',
-                errorNetworkFailed: 'Erro de conexão. Verifique sua internet.',
-                successPasswordReset: 'Email de recuperação enviado! Verifique sua caixa de entrada.',
+                errorNetworkFailed: 'Erro de conexÃ£o. Verifique sua internet.',
+                successPasswordReset: 'Email de recuperaÃ§Ã£o enviado! Verifique sua caixa de entrada.',
                 errorTooManyRequests: 'Muitas tentativas. Aguarde alguns minutos.',
                 // Tipos
-                salary: 'Salário',
+                salary: 'SalÃ¡rio',
                 freelance: 'Freelance',
                 investment: 'Investimento',
-                bonus: 'Bônus',
+                bonus: 'BÃ´nus',
                 other: 'Outros'
             },
             en: { 
@@ -142,8 +144,10 @@
                 pay: 'Pay',
                 markUsed: 'Mark Used',
                 used: 'Used',
-                fixed: 'Fixed (with due date)',
-                reserve: 'Reserve (no due date)',
+                fixed: 'Fixed Date (Due Date)',
+                reserve: 'Make Reserve (No Due Date)',
+                daily: 'Daily',
+                weekly: 'Weekly',
                 monthly: 'Monthly',
                 quarterly: 'Quarterly',
                 semiannual: 'Semiannual',
@@ -200,21 +204,21 @@
         let currentLang = 'pt', isLoading = false, authError = '', showForgotPassword = false;
 
         const defaultCategories = [
-            { value: 'moradia', label: '🏠 Moradia', labelEn: '🏠 Housing', isDefault: true },
-            { value: 'cartao', label: '💳 Cartões', labelEn: '💳 Cards', isDefault: true },
-            { value: 'carro', label: '🚗 Carro', labelEn: '🚗 Car', isDefault: true },
-            { value: 'alimentacao', label: '🍔 Alimentação', labelEn: '🍔 Food', isDefault: true },
-            { value: 'lazer', label: '🎮 Lazer', labelEn: '🎮 Leisure', isDefault: true },
-            { value: 'saude', label: '💊 Saúde', labelEn: '💊 Health', isDefault: true },
-            { value: 'outros', label: '📦 Outros', labelEn: '📦 Others', isDefault: true }
+            { value: 'moradia', label: 'ðŸ  Moradia', labelEn: 'ðŸ  Housing', isDefault: true },
+            { value: 'cartao', label: 'ðŸ’³ CartÃµes', labelEn: 'ðŸ’³ Cards', isDefault: true },
+            { value: 'carro', label: 'ðŸš— Carro', labelEn: 'ðŸš— Car', isDefault: true },
+            { value: 'alimentacao', label: 'ðŸ” AlimentaÃ§Ã£o', labelEn: 'ðŸ” Food', isDefault: true },
+            { value: 'lazer', label: 'ðŸŽ® Lazer', labelEn: 'ðŸŽ® Leisure', isDefault: true },
+            { value: 'saude', label: 'ðŸ’Š SaÃºde', labelEn: 'ðŸ’Š Health', isDefault: true },
+            { value: 'outros', label: 'ðŸ“¦ Outros', labelEn: 'ðŸ“¦ Others', isDefault: true }
         ];
 
         const incomeTypes = [
-            { value: 'salary', labelPt: '💼 Salário', labelEn: '💼 Salary' },
-            { value: 'freelance', labelPt: '💻 Freelance', labelEn: '💻 Freelance' },
-            { value: 'investment', labelPt: '📈 Investimento', labelEn: '📈 Investment' },
-            { value: 'bonus', labelPt: '🎁 Bônus', labelEn: '🎁 Bonus' },
-            { value: 'other', labelPt: '💰 Outros', labelEn: '💰 Other' }
+            { value: 'salary', labelPt: 'ðŸ’¼ SalÃ¡rio', labelEn: 'ðŸ’¼ Salary' },
+            { value: 'freelance', labelPt: 'ðŸ’» Freelance', labelEn: 'ðŸ’» Freelance' },
+            { value: 'investment', labelPt: 'ðŸ“ˆ Investimento', labelEn: 'ðŸ“ˆ Investment' },
+            { value: 'bonus', labelPt: 'ðŸŽ BÃ´nus', labelEn: 'ðŸŽ Bonus' },
+            { value: 'other', labelPt: 'ðŸ’° Outros', labelEn: 'ðŸ’° Other' }
         ];
 
         const t = (key) => translations[currentLang][key] || key;
@@ -302,7 +306,7 @@
             const passwordInput = document.getElementById('password');
             
             if (!emailInput || !passwordInput) {
-                console.error('Campos de email/senha não encontrados');
+                console.error('Campos de email/senha nÃ£o encontrados');
                 return;
             }
             
@@ -336,7 +340,7 @@
                 }
                 authError = '';
             } catch (error) {
-                console.error('Erro de autenticação:', error.code, error.message);
+                console.error('Erro de autenticaÃ§Ã£o:', error.code, error.message);
                 authError = getErrorMessage(error.code);
                 emailInput.classList.add('border-red-500');
                 passwordInput.classList.add('border-red-500');
@@ -385,7 +389,7 @@
             const type = document.getElementById('incomeType').value;
             const frequency = document.getElementById('incomeFrequency').value;
             
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+            const divisors = { daily: 1/30, weekly: 1/4, monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
             const monthlyAmount = amount / divisors[frequency];
             
             await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
@@ -414,7 +418,7 @@
             const type = document.getElementById('editIncomeType').value;
             const frequency = document.getElementById('editIncomeFrequency').value;
             
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+            const divisors = { daily: 1/30, weekly: 1/4, monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
             const monthlyAmount = amount / divisors[frequency];
             
             await updateDoc(doc(db, `users/${currentUser.uid}/incomes/${editingIncome.id}`), {
@@ -439,7 +443,7 @@
             const frequency = document.getElementById('frequency').value;
             const expenseType = document.getElementById('expenseType').value;
             const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('dueDay').value) : null;
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+            const divisors = { daily: 1/30, weekly: 1/4, monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
             const monthlyAmount = amount / divisors[frequency];
             await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
                 description, amount, monthlyAmount, category, frequency, expenseType, dueDay,
@@ -466,7 +470,7 @@
             const frequency = document.getElementById('editFrequency').value;
             const expenseType = document.getElementById('editExpenseType').value;
             const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('editDueDay').value) : null;
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+            const divisors = { daily: 1/30, weekly: 1/4, monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
             const monthlyAmount = amount / divisors[frequency];
             await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${editingExpense.id}`), {
                 description, amount, monthlyAmount, category, frequency, expenseType, dueDay
@@ -603,11 +607,11 @@
                                 <button type="button" onclick="handlePasswordReset()" 
                                     class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                                     ${isLoading ? 'disabled' : ''}>
-                                    ${isLoading ? t('loading') : '📧 ' + t('sendResetEmail')}
+                                    ${isLoading ? t('loading') : 'ðŸ“§ ' + t('sendResetEmail')}
                                 </button>
                                 <button type="button" onclick="toggleForgotPassword()" 
                                     class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition-colors">
-                                    ← ${t('backToLogin')}
+                                    â† ${t('backToLogin')}
                                 </button>
                             </div>
                         </div>
@@ -617,7 +621,7 @@
                         <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
                             <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1>
                             <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
-                            ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">⚠️ ${authError}</div>` : ''}
+                            ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">âš ï¸ ${authError}</div>` : ''}
                             <div class="space-y-4">
                                 <input type="email" id="email" placeholder="${t('email')}" 
                                     class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
@@ -628,16 +632,16 @@
                                 <button type="button" onclick="handleAuth(true)" 
                                     class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                                     ${isLoading ? 'disabled' : ''}>
-                                    ${isLoading ? '⏳ ' + t('loading') : '🔐 ' + t('login')}
+                                    ${isLoading ? 'â³ ' + t('loading') : 'ðŸ” ' + t('login')}
                                 </button>
                                 <button type="button" onclick="handleAuth(false)" 
                                     class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                                     ${isLoading ? 'disabled' : ''}>
-                                    ${isLoading ? '⏳ ' + t('loading') : '✨ ' + t('createAccount')}
+                                    ${isLoading ? 'â³ ' + t('loading') : 'âœ¨ ' + t('createAccount')}
                                 </button>
                                 <button type="button" onclick="toggleForgotPassword()" 
                                     class="w-full text-purple-300 hover:text-purple-200 text-sm underline transition-colors">
-                                    🔑 ${t('forgotPassword')}
+                                    ðŸ”‘ ${t('forgotPassword')}
                                 </button>
                             </div>
                         </div>
@@ -646,7 +650,7 @@
                 return;
             }
 
-            // Cálculos do dashboard
+            // CÃ¡lculos do dashboard
             const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
             const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType).map(exp => ({ 
                 ...exp, 
@@ -680,7 +684,7 @@
                         </div>
                         <div class="flex gap-2">
                             <button onclick="toggleLang()" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg text-sm">
-                                ${currentLang === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}
+                                ${currentLang === 'pt' ? 'ðŸ‡§ðŸ‡· PT' : 'ðŸ‡ºðŸ‡¸ EN'}
                             </button>
                             <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm">${t('logout')}</button>
                         </div>
@@ -689,33 +693,33 @@
                     <!-- Cards de Resumo -->
                     <div class="grid md:grid-cols-4 gap-4 mb-4">
                         <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
-                            <h3 class="text-sm text-green-300 font-semibold mb-2">💰 ${t('monthlyIncome')}</h3>
+                            <h3 class="text-sm text-green-300 font-semibold mb-2">ðŸ’° ${t('monthlyIncome')}</h3>
                             <p class="text-4xl font-bold text-green-400">$${totalIncome.toFixed(2)}</p>
                         </div>
                         <div class="bg-black/60 border-2 border-red-500/30 rounded-xl p-6">
-                            <h3 class="text-sm text-red-300 font-semibold mb-2">📉 ${t('monthlyExpenses')}</h3>
+                            <h3 class="text-sm text-red-300 font-semibold mb-2">ðŸ“‰ ${t('monthlyExpenses')}</h3>
                             <p class="text-4xl font-bold text-red-400">$${totalExpenses.toFixed(2)}</p>
                         </div>
                         <div class="bg-black/60 border-2 border-${balance >= 0 ? 'green' : 'red'}-500/30 rounded-xl p-6">
-                            <h3 class="text-sm text-${balance >= 0 ? 'green' : 'red'}-300 font-semibold mb-2">💳 ${t('balance')}</h3>
+                            <h3 class="text-sm text-${balance >= 0 ? 'green' : 'red'}-300 font-semibold mb-2">ðŸ’³ ${t('balance')}</h3>
                             <p class="text-4xl font-bold text-${balance >= 0 ? 'green' : 'red'}-400">$${balance.toFixed(2)}</p>
                         </div>
                         <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 cursor-pointer hover:bg-purple-900/20" onclick="setSavingsGoal()">
-                            <h3 class="text-sm text-purple-300 font-semibold mb-2">🎯 ${t('savingsGoal')}</h3>
+                            <h3 class="text-sm text-purple-300 font-semibold mb-2">ðŸŽ¯ ${t('savingsGoal')}</h3>
                             <p class="text-2xl font-bold text-purple-400">$${savingsGoal.toFixed(2)}</p>
                             ${savingsGoal > 0 ? `<div class="mt-2 bg-gray-700 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full" style="width: ${goalProgress}%"></div></div><p class="text-xs text-gray-400 mt-1">${goalProgress.toFixed(0)}%</p>` : '<p class="text-xs text-gray-400 mt-1">Clique para definir</p>'}
                         </div>
                     </div>
 
-                    <!-- Gráficos -->
+                    <!-- GrÃ¡ficos -->
                     <div class="grid md:grid-cols-2 gap-4 mb-4">
                         ${expenses.length > 0 ? `
                         <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
-                            <h2 class="text-xl font-bold mb-4">📈 ${t('trend')}</h2>
+                            <h2 class="text-xl font-bold mb-4">ðŸ“ˆ ${t('trend')}</h2>
                             <div style="height:250px;"><canvas id="trendChart"></canvas></div>
                         </div>
                         <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
-                            <h2 class="text-xl font-bold mb-4">🎨 ${t('categoryBreakdown')}</h2>
+                            <h2 class="text-xl font-bold mb-4">ðŸŽ¨ ${t('categoryBreakdown')}</h2>
                             <div style="height:250px;"><canvas id="categoryChart"></canvas></div>
                         </div>
                         ` : ''}
@@ -724,7 +728,7 @@
                     <!-- Nova Receita -->
                     ${!editingIncome ? `
                     <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">💰 ${t('newIncome')}</h2>
+                        <h2 class="text-xl font-bold mb-4">ðŸ’° ${t('newIncome')}</h2>
                         <form id="incomeForm" onsubmit="addIncome(event)" class="space-y-3">
                             <input type="text" id="incomeDescription" placeholder="${t('description')}" required 
                                 class="w-full bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
@@ -732,6 +736,8 @@
                                 <input type="number" id="incomeAmount" placeholder="${t('amount')}" step="0.01" required 
                                     class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
                                 <select id="incomeFrequency" class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
+                                    <option value="daily">${t('daily')}</option>
+                                    <option value="weekly">${t('weekly')}</option>
                                     <option value="monthly">${t('monthly')}</option>
                                     <option value="quarterly">${t('quarterly')}</option>
                                     <option value="semiannual">${t('semiannual')}</option>
@@ -741,12 +747,12 @@
                                     ${incomeTypes.map(type => `<option value="${type.value}">${getIncomeTypeLabel(type.value)}</option>`).join('')}
                                 </select>
                             </div>
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">✅ ${t('add')}</button>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">âœ… ${t('add')}</button>
                         </form>
                     </div>
                     ` : `
                     <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">✏️ ${t('editIncome')}</h2>
+                        <h2 class="text-xl font-bold mb-4">âœï¸ ${t('editIncome')}</h2>
                         <form onsubmit="saveEditIncome(event)" class="space-y-3">
                             <input type="text" id="editIncomeDescription" value="${editingIncome.description}" required 
                                 class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
@@ -754,6 +760,8 @@
                                 <input type="number" id="editIncomeAmount" value="${editingIncome.amount}" step="0.01" required 
                                     class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
                                 <select id="editIncomeFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                    <option value="daily" ${editingIncome.frequency === 'daily' ? 'selected' : ''}>${t('daily')}</option>
+                                    <option value="weekly" ${editingIncome.frequency === 'weekly' ? 'selected' : ''}>${t('weekly')}</option>
                                     <option value="monthly" ${editingIncome.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option>
                                     <option value="quarterly" ${editingIncome.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option>
                                     <option value="semiannual" ${editingIncome.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option>
@@ -764,8 +772,8 @@
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <button type="button" onclick="cancelEditIncome()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">❌ ${t('cancel')}</button>
-                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">💾 ${t('save')}</button>
+                                <button type="button" onclick="cancelEditIncome()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">âŒ ${t('cancel')}</button>
+                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">ðŸ’¾ ${t('save')}</button>
                             </div>
                         </form>
                     </div>
@@ -774,7 +782,7 @@
                     <!-- Lista de Receitas -->
                     ${incomes.length > 0 ? `
                     <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">💰 ${t('incomeList')}</h2>
+                        <h2 class="text-xl font-bold mb-4">ðŸ’° ${t('incomeList')}</h2>
                         <div class="space-y-2">
                             ${incomes.map(income => `
                                 <div class="p-4 rounded-lg border-2 bg-green-500/10 border-green-500/30">
@@ -788,8 +796,8 @@
                                             <p class="text-2xl font-bold text-green-400">+$${(income.monthlyAmount || income.amount).toFixed(2)}/mo</p>
                                         </div>
                                         <div class="flex gap-2 flex-col">
-                                            <button onclick="startEditIncome('${income.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">✏️</button>
-                                            <button onclick="deleteIncome('${income.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button>
+                                            <button onclick="startEditIncome('${income.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">âœï¸</button>
+                                            <button onclick="deleteIncome('${income.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">ðŸ—‘ï¸</button>
                                         </div>
                                     </div>
                                 </div>
@@ -801,12 +809,14 @@
                     <!-- Nova Despesa -->
                     ${!editingExpense ? `
                     <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">➕ ${t('newExpense')}</h2>
+                        <h2 class="text-xl font-bold mb-4">âž• ${t('newExpense')}</h2>
                         <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
                             <input type="text" id="description" placeholder="${t('description')}" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <input type="number" id="amount" placeholder="${t('amount')}" step="0.01" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
                                 <select id="frequency" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+                                    <option value="daily">${t('daily')}</option>
+                                    <option value="weekly">${t('weekly')}</option>
                                     <option value="monthly">${t('monthly')}</option>
                                     <option value="quarterly">${t('quarterly')}</option>
                                     <option value="semiannual">${t('semiannual')}</option>
@@ -817,24 +827,26 @@
                                     ${allCategories.map(cat => `<option value="${cat.value}">${getCategoryLabel(cat)}</option>`).join('')}
                                 </select>
                                 <select id="expenseType" onchange="toggleDueDay()" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="fixed">📅 ${t('fixed')}</option>
-                                    <option value="reserve">💰 ${t('reserve')}</option>
+                                    <option value="fixed">ðŸ“… ${t('fixed')}</option>
+                                    <option value="reserve">ðŸ’° ${t('reserve')}</option>
                                 </select>
                             </div>
                             <div id="dueDayContainer">
                                 <input type="number" id="dueDay" placeholder="${t('dueDay')}" min="1" max="31" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
                             </div>
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">✅ ${t('add')}</button>
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">âœ… ${t('add')}</button>
                         </form>
                     </div>
                     ` : `
                     <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">✏️ ${t('editExpense')}</h2>
+                        <h2 class="text-xl font-bold mb-4">âœï¸ ${t('editExpense')}</h2>
                         <form onsubmit="saveEdit(event)" class="space-y-3">
                             <input type="text" id="editDescription" value="${editingExpense.description}" required class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
                             <div class="grid grid-cols-2 gap-3">
                                 <input type="number" id="editAmount" value="${editingExpense.amount}" step="0.01" required class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
                                 <select id="editFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+                                    <option value="daily" ${editingExpense.frequency === 'daily' ? 'selected' : ''}>${t('daily')}</option>
+                                    <option value="weekly" ${editingExpense.frequency === 'weekly' ? 'selected' : ''}>${t('weekly')}</option>
                                     <option value="monthly" ${editingExpense.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option>
                                     <option value="quarterly" ${editingExpense.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option>
                                     <option value="semiannual" ${editingExpense.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option>
@@ -847,16 +859,16 @@
                                     ${allCategories.map(cat => `<option value="${cat.value}" ${editingExpense.category === cat.value ? 'selected' : ''}>${getCategoryLabel(cat)}</option>`).join('')}
                                 </select>
                                 <select id="editExpenseType" onchange="toggleDueDayEdit()" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="fixed" ${editingExpense.expenseType === 'fixed' ? 'selected' : ''}>📅 ${t('fixed')}</option>
-                                    <option value="reserve" ${editingExpense.expenseType === 'reserve' ? 'selected' : ''}>💰 ${t('reserve')}</option>
+                                    <option value="fixed" ${editingExpense.expenseType === 'fixed' ? 'selected' : ''}>ðŸ“… ${t('fixed')}</option>
+                                    <option value="reserve" ${editingExpense.expenseType === 'reserve' ? 'selected' : ''}>ðŸ’° ${t('reserve')}</option>
                                 </select>
                             </div>
                             <div id="editDueDayContainer" ${editingExpense.expenseType === 'reserve' ? 'style="display:none;"' : ''}>
                                 <input type="number" id="editDueDay" value="${editingExpense.dueDay || 1}" min="1" max="31" class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
                             </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">❌ ${t('cancel')}</button>
-                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">💾 ${t('save')}</button>
+                                <button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">âŒ ${t('cancel')}</button>
+                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">ðŸ’¾ ${t('save')}</button>
                             </div>
                         </form>
                     </div>
@@ -864,10 +876,10 @@
 
                     <!-- Lista de Despesas Fixas -->
                     <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">📅 ${t('fixedList')}</h2>
+                        <h2 class="text-xl font-bold mb-4">ðŸ“… ${t('fixedList')}</h2>
                         <div class="space-y-2">
                             ${fixedExpenses.length === 0 ? `<p class="text-center text-gray-400 py-8">${t('noFixed')}</p>` : fixedExpenses.map(exp => {
-                                const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
+                                const cat = allCategories.find(c => c.value === exp.category) || { label: 'ðŸ“¦ Other' };
                                 return `<div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
                                     <div class="flex justify-between items-start">
                                         <div class="flex-1">
@@ -880,9 +892,9 @@
                                             <p class="text-2xl font-bold text-purple-400">$${exp.displayAmount.toFixed(2)}/mo</p>
                                         </div>
                                         <div class="flex gap-2 flex-col">
-                                            <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isPaid ? '✓' : t('pay')}</button>
-                                            <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">✏️</button>
-                                            <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button>
+                                            <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isPaid ? 'âœ“' : t('pay')}</button>
+                                            <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">âœï¸</button>
+                                            <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">ðŸ—‘ï¸</button>
                                         </div>
                                     </div>
                                 </div>`;
@@ -893,10 +905,10 @@
                     <!-- Lista de Reservas -->
                     ${reserves.length > 0 ? `
                     <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">💰 ${t('reservesList')}</h2>
+                        <h2 class="text-xl font-bold mb-4">ðŸ’° ${t('reservesList')}</h2>
                         <div class="space-y-2">
                             ${reserves.map(exp => {
-                                const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
+                                const cat = allCategories.find(c => c.value === exp.category) || { label: 'ðŸ“¦ Other' };
                                 return `<div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}">
                                     <div class="flex justify-between items-start">
                                         <div class="flex-1">
@@ -906,12 +918,12 @@
                                             </div>
                                             <p class="font-semibold text-white mb-1">${exp.description}</p>
                                             <p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p>
-                                            <p class="text-sm text-green-300 mt-1">💰 ${t('accumulated')}: $${exp.accumulated.toFixed(2)}</p>
+                                            <p class="text-sm text-green-300 mt-1">ðŸ’° ${t('accumulated')}: $${exp.accumulated.toFixed(2)}</p>
                                         </div>
                                         <div class="flex gap-2 flex-col">
-                                            <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? '✓ ' + t('used') : t('markUsed')}</button>
-                                            <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">✏️</button>
-                                            <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button>
+                                            <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? 'âœ“ ' + t('used') : t('markUsed')}</button>
+                                            <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">âœï¸</button>
+                                            <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">ðŸ—‘ï¸</button>
                                         </div>
                                     </div>
                                 </div>`;
@@ -922,7 +934,7 @@
 
                     <!-- Footer -->
                     <div class="text-center text-gray-500 text-xs py-4 mt-4">
-                        <p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? '✨ Novo: Receitas + Balanço + Gráficos + Metas' : '✨ New: Income + Balance + Charts + Goals'}</p>
+                        <p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? 'âœ¨ Novo: Receitas + BalanÃ§o + GrÃ¡ficos + Metas' : 'âœ¨ New: Income + Balance + Charts + Goals'}</p>
                     </div>
                 </div>
             </div>`;
@@ -976,7 +988,7 @@
             }
         }
 
-        // Expor funções globalmente
+        // Expor funÃ§Ãµes globalmente
         window.handleAuth = handleAuth;
         window.handlePasswordReset = handlePasswordReset;
         window.handleLogout = handleLogout;
