@@ -204,6 +204,12 @@
         async function handleAuth(isLogin) {
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
+            
+            if (!emailInput || !passwordInput) {
+                console.error('Campos de email/senha não encontrados');
+                return;
+            }
+            
             const email = emailInput.value.trim();
             const password = passwordInput.value;
             
@@ -226,12 +232,17 @@
             
             try {
                 if (isLogin) {
+                    console.log('Tentando fazer login...');
                     await signInWithEmailAndPassword(auth, email, password);
+                    console.log('Login bem-sucedido!');
                 } else {
+                    console.log('Tentando criar conta...');
                     await createUserWithEmailAndPassword(auth, email, password);
+                    console.log('Conta criada com sucesso!');
                 }
                 authError = '';
             } catch (error) {
+                console.error('Erro de autenticação:', error.code, error.message);
                 authError = getErrorMessage(error.code);
                 emailInput.classList.add('border-red-500');
                 passwordInput.classList.add('border-red-500');
@@ -400,20 +411,22 @@
                             ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">⚠️ ${authError}</div>` : ''}
                             <div class="space-y-4">
                                 <input type="email" id="email" placeholder="${t('email')}" 
-                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
+                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
+                                    onkeypress="if(event.key==='Enter') handleAuth(true)">
                                 <input type="password" id="password" placeholder="${t('password')}" 
-                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
-                                <button onclick="handleAuth(true)" 
+                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
+                                    onkeypress="if(event.key==='Enter') handleAuth(true)">
+                                <button type="button" onclick="handleAuth(true)" 
                                     class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                                     ${isLoading ? 'disabled' : ''}>
                                     ${isLoading ? '⏳ ' + t('loading') : '🔐 ' + t('login')}
                                 </button>
-                                <button onclick="handleAuth(false)" 
+                                <button type="button" onclick="handleAuth(false)" 
                                     class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                                     ${isLoading ? 'disabled' : ''}>
                                     ${isLoading ? '⏳ ' + t('loading') : '✨ ' + t('createAccount')}
                                 </button>
-                                <button onclick="toggleForgotPassword()" 
+                                <button type="button" onclick="toggleForgotPassword()" 
                                     class="w-full text-purple-300 hover:text-purple-200 text-sm underline transition-colors">
                                     🔑 ${t('forgotPassword')}
                                 </button>
