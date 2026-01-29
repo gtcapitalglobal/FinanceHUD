@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance HUD v1.5.0</title>
+    <meta name="theme-color" content="#6b21a8">
+    <meta name="description" content="Finance HUD - Seu gestor financeiro pessoal completo">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <title>Finance HUD v1.7.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -17,7 +21,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const APP_VERSION = 'v1.5.0';
+        const APP_VERSION = 'v1.7.0';
         const firebaseConfig = {
             apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
             authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
@@ -111,6 +115,51 @@
                 other: 'Outros',
                 // Previsão
                 forecast: 'PREVISÃO MENSAL',
+                demoMode: 'Modo Demo',
+                loadDemo: 'Carregar Demo',
+                clearAll: 'Limpar Tudo',
+                welcome: 'Bem-vindo ao Finance HUD!',
+                welcomeMessage: 'Quer começar com dados de exemplo para conhecer o sistema?',
+                loadDemoData: 'Sim, carregar demo',
+                startFromScratch: 'Não, começar do zero',
+                confirmClear: 'Tem certeza que deseja limpar TODOS os dados?',
+                demoLoaded: 'Dados de demonstração carregados!',
+                dataCleared: 'Todos os dados foram removidos!',
+                demoActive: 'Modo demo ativo (dados não salvos)',
+                // Configurações
+                settings: 'Configurações',
+                categories: 'Categorias',
+                addCategory: 'Adicionar Categoria',
+                editCategory: 'Editar Categoria',
+                categoryName: 'Nome da Categoria',
+                categoryIcon: 'Ícone',
+                customCategories: 'Categorias Personalizadas',
+                // Exportar/Importar
+                export: 'Exportar',
+                import: 'Importar',
+                exportData: 'Exportar Dados',
+                importData: 'Importar Dados',
+                downloadCSV: 'Baixar CSV',
+                downloadBackup: 'Backup Completo',
+                // Automação
+                copyPreviousMonth: 'Copiar Mês Anterior',
+                markMultiplePaid: 'Marcar Várias Pagas',
+                duplicate: 'Duplicar',
+                // Alertas
+                dueIn: 'Vence em',
+                days: 'dias',
+                overdue: 'Atrasada',
+                upcomingBills: 'Contas a Vencer',
+                // Análises
+                comparison: 'Comparação',
+                thisMonth: 'Este Mês',
+                lastMonth: 'Mês Anterior',
+                evolution: 'Evolução',
+                projection: 'Projeção',
+                spending: 'Gastando',
+                more: 'mais',
+                less: 'menos',
+                thanLastMonth: 'que o mês anterior',
                 projectedExpenses: 'Despesas Provisionadas',
                 projectedIncome: 'Receitas Previstas',
                 surplus: 'SUPERÁVIT',
@@ -208,6 +257,51 @@
                 other: 'Other',
                 // Forecast
                 forecast: 'MONTHLY FORECAST',
+                demoMode: 'Demo Mode',
+                loadDemo: 'Load Demo',
+                clearAll: 'Clear All',
+                welcome: 'Welcome to Finance HUD!',
+                welcomeMessage: 'Want to start with example data to learn the system?',
+                loadDemoData: 'Yes, load demo',
+                startFromScratch: 'No, start from scratch',
+                confirmClear: 'Are you sure you want to clear ALL data?',
+                demoLoaded: 'Demo data loaded!',
+                dataCleared: 'All data has been removed!',
+                demoActive: 'Demo mode active (data not saved)',
+                // Settings
+                settings: 'Settings',
+                categories: 'Categories',
+                addCategory: 'Add Category',
+                editCategory: 'Edit Category',
+                categoryName: 'Category Name',
+                categoryIcon: 'Icon',
+                customCategories: 'Custom Categories',
+                // Export/Import
+                export: 'Export',
+                import: 'Import',
+                exportData: 'Export Data',
+                importData: 'Import Data',
+                downloadCSV: 'Download CSV',
+                downloadBackup: 'Complete Backup',
+                // Automation
+                copyPreviousMonth: 'Copy Previous Month',
+                markMultiplePaid: 'Mark Multiple as Paid',
+                duplicate: 'Duplicate',
+                // Alerts
+                dueIn: 'Due in',
+                days: 'days',
+                overdue: 'Overdue',
+                upcomingBills: 'Upcoming Bills',
+                // Analysis
+                comparison: 'Comparison',
+                thisMonth: 'This Month',
+                lastMonth: 'Last Month',
+                evolution: 'Evolution',
+                projection: 'Projection',
+                spending: 'Spending',
+                more: 'more',
+                less: 'less',
+                thanLastMonth: 'than last month',
                 projectedExpenses: 'Projected Expenses',
                 projectedIncome: 'Projected Income',
                 surplus: 'SURPLUS',
@@ -231,7 +325,15 @@
         let currentUser = null, expenses = [], incomes = [], customCategories = [], savingsGoal = 0;
         let showSettings = false, editingExpense = null, editingIncome = null;
         let trendChartInstance = null, categoryChartInstance = null;
+                let currentUser = null, expenses = [], incomes = [], customCategories = [], savingsGoal = 0;
+        let showSettings = false, editingExpense = null, editingIncome = null;
+        let trendChartInstance = null, categoryChartInstance = null;
         let currentLang = 'pt', isLoading = false, authError = '', showForgotPassword = false;
+                let showSettings = false, editingExpense = null, editingIncome = null;
+        let trendChartInstance = null, categoryChartInstance = null, comparisonChartInstance = null;
+        let currentLang = 'pt', isLoading = false, authError = '', showForgotPassword = false;
+        let demoMode = false, showWelcomeModal = false;
+        let upcomingBills = [], overdueBills = [], isProcessing = false;
 
         const defaultCategories = [
             { value: 'moradia', label: 'ðŸ  Moradia', labelEn: 'ðŸ  Housing', isDefault: true },
@@ -258,6 +360,27 @@
             return incType ? (currentLang === 'pt' ? incType.labelPt : incType.labelEn) : type;
         };
 
+
+        // DADOS DE DEMONSTRAÇÃO
+        const DEMO_DATA = {
+            incomes: [
+                { id: 'demo-inc-1', description: 'Salário', amount: 5000, monthlyAmount: 5000, type: 'salary', frequency: 'monthly' },
+                { id: 'demo-inc-2', description: 'Freelance Web Design', amount: 1200, monthlyAmount: 1200, type: 'freelance', frequency: 'monthly' },
+                { id: 'demo-inc-3', description: 'Rendimento Investimentos', amount: 300, monthlyAmount: 300, type: 'investment', frequency: 'monthly' }
+            ],
+            expenses: [
+                { id: 'demo-exp-1', description: 'Aluguel', amount: 1500, monthlyAmount: 1500, category: 'moradia', frequency: 'monthly', dueDay: 5, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-2', description: 'Cartão de Crédito', amount: 800, monthlyAmount: 800, category: 'cartao', frequency: 'monthly', dueDay: 10, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-3', description: 'Gasolina', amount: 400, monthlyAmount: 400, category: 'carro', frequency: 'monthly', dueDay: 15, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-4', description: 'Supermercado', amount: 150, monthlyAmount: 600, category: 'alimentacao', frequency: 'weekly', dueDay: 20, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-5', description: 'Netflix + Spotify', amount: 35, monthlyAmount: 35, category: 'lazer', frequency: 'monthly', dueDay: 8, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-6', description: 'Academia', amount: 120, monthlyAmount: 120, category: 'saude', frequency: 'monthly', dueDay: 12, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-7', description: 'Fundo de Emergência', amount: 500, monthlyAmount: 500, category: 'outros', frequency: 'monthly', expenseType: 'reserve', paymentHistory: {}, usageHistory: {} },
+                { id: 'demo-exp-8', description: 'Uber/Transporte', amount: 200, monthlyAmount: 200, category: 'carro', frequency: 'monthly', dueDay: 25, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} }
+            ],
+            savingsGoal: 1000
+        };
+
         function getErrorMessage(errorCode) {
             const errorMap = {
                 'auth/invalid-credential': 'errorInvalidCredentials',
@@ -280,8 +403,19 @@
                 loadIncomes();
                 loadCustomCategories();
                 loadSavingsGoal();
+                checkFirstTime();
             }
-            render();
+    
+        // PWA - Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ Service Worker registrado'))
+                    .catch(err => console.log('❌ Erro no Service Worker:', err));
+            });
+        }
+
+        render();
         });
 
         async function loadLanguage() {
@@ -414,6 +548,13 @@
         // INCOME FUNCTIONS
         async function addIncome(e) {
             e.preventDefault();
+            
+            const description = document.getElementById('incomeDescription').value.trim();
+            const amount = parseFloat(document.getElementById('incomeAmount').value);
+            
+            if (!validateIncome(description, amount)) return;
+            
+            // Continua com o código original...
             const description = document.getElementById('incomeDescription').value;
             const amount = parseFloat(document.getElementById('incomeAmount').value);
             const type = document.getElementById('incomeType').value;
@@ -467,6 +608,15 @@
         // EXPENSE FUNCTIONS
         async function addExpense(e) {
             e.preventDefault();
+            
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const expenseType = document.getElementById('expenseType').value;
+            const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('dueDay').value) : null;
+            
+            if (!validateExpense(description, amount, dueDay, expenseType)) return;
+            
+            // Continua com o código original...
             const description = document.getElementById('description').value;
             const amount = parseFloat(document.getElementById('amount').value);
             const category = document.getElementById('category').value;
@@ -577,6 +727,15 @@
             const canvas = document.getElementById('categoryChart');
             if (!canvas) return;
             
+            calculateAlerts();
+            
+
+            // Ordenar despesas por dia de vencimento
+            fixedExpenses.sort((a, b) => (a.dueDay || 999) - (b.dueDay || 999));
+            
+            // Ordenar receitas por valor (maior primeiro)
+            incomes.sort((a, b) => (b.monthlyAmount || b.amount) - (a.monthlyAmount || a.amount));
+
             const allCategories = getAllCategories();
             const categoryTotals = {};
             
@@ -701,6 +860,15 @@
             
             const goalProgress = savingsGoal > 0 ? Math.min((balance / savingsGoal) * 100, 100) : 0;
             
+            calculateAlerts();
+            
+
+            // Ordenar despesas por dia de vencimento
+            fixedExpenses.sort((a, b) => (a.dueDay || 999) - (b.dueDay || 999));
+            
+            // Ordenar receitas por valor (maior primeiro)
+            incomes.sort((a, b) => (b.monthlyAmount || b.amount) - (a.monthlyAmount || a.amount));
+
             const allCategories = getAllCategories();
 
             app.innerHTML = `
@@ -713,12 +881,45 @@
                             <p class="text-xs text-gray-500">${APP_VERSION}</p>
                         </div>
                         <div class="flex gap-2">
+                            \${getAlertBadgeCount() > 0 ? \`
+                                <div class="relative">
+                                    <button class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/40 border border-yellow-500/50 rounded-lg text-sm flex items-center gap-2">
+                                        <span>🔔</span>
+                                        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                                            \${getAlertBadgeCount()}
+                                        </span>
+                                    </button>
+                                </div>
+                            \` : ''}
                             <button onclick="toggleLang()" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg text-sm">
                                 ${currentLang === 'pt' ? 'ðŸ‡§ðŸ‡· PT' : 'ðŸ‡ºðŸ‡¸ EN'}
+                            </button>
+                            <label class="flex items-center gap-2 px-3 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 rounded-lg text-sm cursor-pointer">
+                                <input type="checkbox" onchange="toggleDemoMode()" \${demoMode ? 'checked' : ''} class="w-4 h-4">
+                                <span>🎮 \${t('demoMode')}</span>
+                            </label>
+                            <button onclick="loadDemoData()" title="Carregar dados de exemplo para testar o sistema" class="px-4 py-2 bg-green-600/20 hover:bg-green-600/40 border border-green-500/50 rounded-lg text-sm">
+                                📥 \${t('loadDemo')}
+                            </button>
+                            <button onclick="exportToCSV('full')" title="Fazer backup completo de todos os dados" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg text-sm" title="Backup completo">
+                                📥 \${t('export')}
+                            </button>
+                            <button onclick="copyPreviousMonth()" title="Copiar pagamentos do mês anterior para este mês" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 rounded-lg text-sm" title="Copiar despesas do mês anterior">
+                                🔄 \${t('copyPreviousMonth')}
+                            </button>
+                            <button onclick="clearAllData()" title="Remover TODOS os dados (não pode ser desfeito)" class="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 rounded-lg text-sm">
+                                🗑️ \${t('clearAll')}
                             </button>
                             <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm">${t('logout')}</button>
                         </div>
                     </div>
+
+
+                    \${demoMode ? \`
+                    <div class="bg-purple-600/20 border-2 border-purple-500/50 rounded-xl p-3 mb-4 text-center">
+                        <span class="text-purple-300 font-semibold">🎮 \${t('demoActive')}</span>
+                    </div>
+                    \` : ''}
 
                     <!-- Cards de Resumo -->
                     <div class="grid md:grid-cols-4 gap-4 mb-4">
@@ -1077,6 +1278,320 @@
         }
 
         // Expor funÃ§Ãµes globalmente
+
+
+
+
+
+        // VALIDAÇÕES
+        function validateExpense(description, amount, dueDay, expenseType) {
+            if (!description || description.trim() === '') {
+                alert(currentLang === 'pt' ? 'Descrição é obrigatória!' : 'Description is required!');
+                return false;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert(currentLang === 'pt' ? 'Valor deve ser maior que zero!' : 'Amount must be greater than zero!');
+                return false;
+            }
+            if (expenseType === 'fixed' && (dueDay < 1 || dueDay > 31)) {
+                alert(currentLang === 'pt' ? 'Dia de vencimento deve ser entre 1 e 31!' : 'Due day must be between 1 and 31!');
+                return false;
+            }
+            return true;
+        }
+
+        function validateIncome(description, amount) {
+            if (!description || description.trim() === '') {
+                alert(currentLang === 'pt' ? 'Descrição é obrigatória!' : 'Description is required!');
+                return false;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert(currentLang === 'pt' ? 'Valor deve ser maior que zero!' : 'Amount must be greater than zero!');
+                return false;
+            }
+            return true;
+        }
+
+        // AUTOMAÇÃO AVANÇADA
+        async function copyPreviousMonth() {
+            if (!currentUser) return;
+            if (!confirm('Copiar todas as despesas do mês anterior para este mês?')) return;
+            
+            try {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                
+                let copied = 0;
+                for (const expense of expenses) {
+                    if (expense.expenseType === 'fixed' || !expense.expenseType) {
+                        const lastMonthKey = `${currentYear}-${currentMonth - 1}`;
+                        const currentMonthKey = `${currentYear}-${currentMonth}`;
+                        
+                        if (expense.paymentHistory?.[lastMonthKey] && !expense.paymentHistory?.[currentMonthKey]) {
+                            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expense.id}`), {
+                                paymentHistory: { 
+                                    ...expense.paymentHistory, 
+                                    [currentMonthKey]: true 
+                                }
+                            });
+                            copied++;
+                        }
+                    }
+                }
+                
+                alert(`🔄 ${copied} ` + (currentLang === 'pt' ? 'despesa(s) copiada(s) do mês anterior!' : 'expense(s) copied from last month!'));
+                render();
+            } catch (error) {
+                console.error('Erro ao copiar mês:', error);
+                alert('Erro ao copiar despesas do mês anterior');
+            }
+        }
+
+        async function duplicateExpense(expenseId) {
+            if (!currentUser) return;
+            const expense = expenses.find(e => e.id === expenseId);
+            if (!expense) return;
+            
+            try {
+                await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
+                    description: expense.description + ' (cópia)',
+                    amount: expense.amount,
+                    monthlyAmount: expense.monthlyAmount,
+                    category: expense.category,
+                    frequency: expense.frequency,
+                    expenseType: expense.expenseType,
+                    dueDay: expense.dueDay,
+                    paymentHistory: {},
+                    usageHistory: {},
+                    createdAt: new Date().toISOString()
+                });
+                alert('✅ ' + (currentLang === 'pt' ? 'Despesa duplicada com sucesso!' : 'Expense duplicated successfully!'));
+            } catch (error) {
+                console.error('Erro ao duplicar:', error);
+                alert('Erro ao duplicar despesa');
+            }
+        }
+
+        async function duplicateIncome(incomeId) {
+            if (!currentUser) return;
+            const income = incomes.find(i => i.id === incomeId);
+            if (!income) return;
+            
+            try {
+                await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
+                    description: income.description + ' (cópia)',
+                    amount: income.amount,
+                    monthlyAmount: income.monthlyAmount,
+                    type: income.type,
+                    frequency: income.frequency,
+                    createdAt: new Date().toISOString()
+                });
+                alert('✅ ' + (currentLang === 'pt' ? 'Receita duplicada com sucesso!' : 'Income duplicated successfully!'));
+            } catch (error) {
+                console.error('Erro ao duplicar:', error);
+                alert('Erro ao duplicar receita');
+            }
+        }
+
+        // SISTEMA DE ALERTAS
+        function calculateAlerts() {
+            const now = new Date();
+            const currentDay = now.getDate();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            upcomingBills = [];
+            overdueBills = [];
+            
+            const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType);
+            
+            fixedExpenses.forEach(exp => {
+                if (!exp.dueDay) return;
+                
+                const isPaid = exp.paymentHistory?.[`${currentYear}-${currentMonth}`];
+                if (isPaid) return;
+                
+                const daysUntilDue = exp.dueDay - currentDay;
+                
+                if (daysUntilDue < 0) {
+                    overdueBills.push({ ...exp, daysOverdue: Math.abs(daysUntilDue) });
+                } else if (daysUntilDue <= 7) {
+                    upcomingBills.push({ ...exp, daysUntilDue });
+                }
+            });
+            
+            upcomingBills.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+            overdueBills.sort((a, b) => b.daysOverdue - a.daysOverdue);
+        }
+
+        function getAlertBadgeCount() {
+            return upcomingBills.length + overdueBills.length;
+        }
+
+        // FUNÇÕES DE EXPORTAÇÃO CSV
+        function exportToCSV(type) {
+            const now = new Date();
+            const timestamp = now.toISOString().split('T')[0];
+            
+            if (type === 'expenses') {
+                let csv = 'Descrição,Valor,Valor Mensal,Categoria,Frequência,Tipo,Dia Vencimento,Criado Em\n';
+                expenses.forEach(exp => {
+                    const cat = getAllCategories().find(c => c.value === exp.category);
+                    const catLabel = cat ? getCategoryLabel(cat) : exp.category;
+                    csv += `"${exp.description}",${exp.amount},${exp.monthlyAmount || exp.amount},"${catLabel}",${t(exp.frequency || 'monthly')},${exp.expenseType === 'fixed' ? 'Fixa' : 'Reserva'},${exp.dueDay || ''},"${exp.createdAt || ''}"\n`;
+                });
+                downloadCSV(csv, `despesas_${timestamp}.csv`);
+            } else if (type === 'incomes') {
+                let csv = 'Descrição,Valor,Valor Mensal,Tipo,Frequência,Criado Em\n';
+                incomes.forEach(inc => {
+                    csv += `"${inc.description}",${inc.amount},${inc.monthlyAmount || inc.amount},${getIncomeTypeLabel(inc.type)},${t(inc.frequency || 'monthly')},"${inc.createdAt || ''}"\n`;
+                });
+                downloadCSV(csv, `receitas_${timestamp}.csv`);
+            } else if (type === 'full') {
+                const data = {
+                    version: APP_VERSION,
+                    exportDate: now.toISOString(),
+                    expenses: expenses,
+                    incomes: incomes,
+                    savingsGoal: savingsGoal,
+                    customCategories: customCategories
+                };
+                const json = JSON.stringify(data, null, 2);
+                downloadFile(json, `finance-hud-backup_${timestamp}.json`, 'application/json');
+            }
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            downloadFile(blob, filename, 'text/csv');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        // FUNÇÕES DO SISTEMA DE DEMO
+        function toggleDemoMode() {
+            demoMode = !demoMode;
+            if (demoMode) {
+                expenses = [...DEMO_DATA.expenses];
+                incomes = [...DEMO_DATA.incomes];
+                savingsGoal = DEMO_DATA.savingsGoal;
+            } else {
+                loadExpenses();
+                loadIncomes();
+                loadSavingsGoal();
+            }
+            render();
+            updateCharts();
+        }
+
+        async function loadDemoData() {
+            if (!currentUser) return;
+            
+            try {
+                // Adicionar receitas demo
+                for (const income of DEMO_DATA.incomes) {
+                    await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
+                        description: income.description,
+                        amount: income.amount,
+                        monthlyAmount: income.monthlyAmount,
+                        type: income.type,
+                        frequency: income.frequency,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                
+                // Adicionar despesas demo
+                for (const expense of DEMO_DATA.expenses) {
+                    await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
+                        description: expense.description,
+                        amount: expense.amount,
+                        monthlyAmount: expense.monthlyAmount,
+                        category: expense.category,
+                        frequency: expense.frequency,
+                        expenseType: expense.expenseType,
+                        dueDay: expense.dueDay,
+                        paymentHistory: {},
+                        usageHistory: {},
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                
+                // Salvar meta de economia
+                await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { 
+                    monthlyGoal: DEMO_DATA.savingsGoal 
+                });
+                
+                // Marcar que já viu o welcome
+                await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { 
+                    sawWelcome: true,
+                    language: currentLang
+                }, { merge: true });
+                
+                alert('✨ ' + t('demoLoaded'));
+                showWelcomeModal = false;
+                render();
+            } catch (error) {
+                console.error('Erro ao carregar demo:', error);
+                alert('Erro ao carregar dados de demonstração');
+            }
+        }
+
+        async function clearAllData() {
+            if (!currentUser) return;
+            if (!confirm(t('confirmClear'))) return;
+            
+            try {
+                // Deletar todas as receitas
+                for (const income of incomes) {
+                    await deleteDoc(doc(db, `users/${currentUser.uid}/incomes/${income.id}`));
+                }
+                
+                // Deletar todas as despesas
+                for (const expense of expenses) {
+                    await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expense.id}`));
+                }
+                
+                // Resetar meta
+                await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { 
+                    monthlyGoal: 0 
+                });
+                
+                alert('🗑️ ' + t('dataCleared'));
+                render();
+            } catch (error) {
+                console.error('Erro ao limpar dados:', error);
+                alert('Erro ao limpar dados');
+            }
+        }
+
+        async function checkFirstTime() {
+            if (!currentUser) return;
+            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'));
+            if (!docSnap.exists() || !docSnap.data().sawWelcome) {
+                showWelcomeModal = true;
+                render();
+            }
+        }
+
+        async function skipWelcome() {
+            await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { 
+                sawWelcome: true,
+                language: currentLang
+            }, { merge: true });
+            showWelcomeModal = false;
+            render();
+        }
+
         window.handleAuth = handleAuth;
         window.handlePasswordReset = handlePasswordReset;
         window.handleLogout = handleLogout;
@@ -1097,6 +1612,15 @@
         window.toggleDueDay = toggleDueDay;
         window.toggleDueDayEdit = toggleDueDayEdit;
         window.setSavingsGoal = setSavingsGoal;
+        window.toggleDemoMode = toggleDemoMode;
+        window.loadDemoData = loadDemoData;
+        window.clearAllData = clearAllData;
+        window.skipWelcome = skipWelcome;
+        window.exportToCSV = exportToCSV;
+        window.copyPreviousMonth = copyPreviousMonth;
+        window.duplicateExpense = duplicateExpense;
+        window.duplicateIncome = duplicateIncome;
+
         
         render();
     </script>
