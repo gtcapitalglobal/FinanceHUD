@@ -892,7 +892,7 @@
                 ...exp, 
                 isUsed: exp.usageHistory?.[`${currentYear}-${currentMonth}`] || false, 
                 displayAmount: exp.monthlyAmount || exp.amount, 
-                accumulated: exp.displayAmount 
+                accumulated: exp.monthlyAmount || exp.amount
             }));
             
             const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.monthlyAmount || exp.amount), 0);
