@@ -1,313 +1,249 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Finance HUD v1.7.0</title>
     <meta name="theme-color" content="#6b21a8">
     <meta name="description" content="Finance HUD - Seu gestor financeiro pessoal completo">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icon-192.png">
-    <title>Finance HUD v1.7.0</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-purple-900 via-blue-900 to-black min-h-screen">
-    <div id="app"></div>
-    <canvas id="trendChart" style="display:none;"></canvas>
-    <canvas id="categoryChart" style="display:none;"></canvas>
-    
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+ <div id="app"></div>
+ <canvas id="trendChart" style="display:none;"></canvas>
+ <canvas id="categoryChart" style="display:none;"></canvas>
+ 
+ <script type="module">
+ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+ import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const APP_VERSION = 'v1.7.0';
-        const firebaseConfig = {
-            apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
-            authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
-            projectId: "gestao-pessoal-f2a6d",
-            storageBucket: "gestao-pessoal-f2a6d.firebasestorage.app",
-            messagingSenderId: "979106570809",
-            appId: "1:979106570809:web:4c09f578a99cd25407a3e8"
-        };
+ const APP_VERSION = 'v1.7.0';
+ const firebaseConfig = {
+ apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
+ authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
+ projectId: "gestao-pessoal-f2a6d",
+ storageBucket: "gestao-pessoal-f2a6d.firebasestorage.app",
+ messagingSenderId: "979106570809",
+ appId: "1:979106570809:web:4c09f578a99cd25407a3e8"
+ };
 
-        const translations = {
-            pt: { 
-                title: 'FINANCE HUD',
-                login: 'ENTRAR',
-                createAccount: 'CRIAR CONTA',
-                email: 'Email',
-                password: 'Senha',
-                logout: 'Sair',
-                // Dashboard
-                monthlyIncome: 'RECEITAS',
-                monthlyExpenses: 'DESPESAS',
-                balance: 'SALDO',
-                fixedExpenses: 'DESPESAS FIXAS',
-                reserves: 'RESERVAS',
-                savingsGoal: 'META DE ECONOMIA',
-                // Receitas
-                newIncome: 'NOVA RECEITA',
-                incomeList: 'RECEITAS DO MÃŠS',
-                noIncome: 'Nenhuma receita cadastrada',
-                // Despesas
-                monthlyTotal: 'TOTAL MENSAL',
-                accumulated: 'acumulado',
-                paid: 'pago',
-                trend: 'TENDÃŠNCIA 6 MESES',
-                categoryBreakdown: 'GASTOS POR CATEGORIA',
-                newExpense: 'NOVA DESPESA',
-                description: 'DescriÃ§Ã£o',
-                amount: 'Valor ($)',
-                dueDay: 'Dia (1-31)',
-                add: 'Adicionar',
-                edit: 'Editar',
-                delete: 'Excluir',
-                pay: 'Pagar',
-                markUsed: 'Marcar Usado',
-                used: 'Usado',
-                fixed: 'Fixa (com vencimento)',
-                reserve: 'Reserva (sem vencimento)',
-                monthly: 'Mensal',
-                quarterly: 'Trimestral',
-                semiannual: 'Semestral',
-                annual: 'Anual',
-                biannual: 'Bianual',
-                fixedList: 'DESPESAS FIXAS',
-                reservesList: 'RESERVAS (Sem Vencimento)',
-                noFixed: 'Nenhuma despesa fixa',
-                day: 'Dia',
-                editExpense: 'EDITAR DESPESA',
-                editIncome: 'EDITAR RECEITA',
-                cancel: 'Cancelar',
-                save: 'Salvar',
-                // AutomaÃ§Ã£o
-                copyLastMonth: 'Copiar MÃªs Anterior',
-                importCSV: 'Importar CSV',
-                exportCSV: 'Exportar CSV',
-                // Metas
-                goalAmount: 'Meta ($)',
-                goalProgress: 'Progresso',
-                setGoal: 'Definir Meta',
-                // Auth
-                forgotPassword: 'Esqueci minha senha',
-                resetPassword: 'RECUPERAR SENHA',
-                backToLogin: 'Voltar ao login',
-                sendResetEmail: 'Enviar email de recuperaÃ§Ã£o',
-                loading: 'Carregando...',
-                // Erros
-                errorInvalidCredentials: 'Email ou senha incorretos',
-                errorUserNotFound: 'Email nÃ£o cadastrado',
-                errorWeakPassword: 'A senha deve ter pelo menos 6 caracteres',
-                errorEmailInUse: 'Este email jÃ¡ estÃ¡ cadastrado',
-                errorInvalidEmail: 'Email invÃ¡lido',
-                errorGeneric: 'Erro ao processar. Tente novamente.',
-                errorNetworkFailed: 'Erro de conexÃ£o. Verifique sua internet.',
-                successPasswordReset: 'Email de recuperaÃ§Ã£o enviado! Verifique sua caixa de entrada.',
-                errorTooManyRequests: 'Muitas tentativas. Aguarde alguns minutos.',
-                // Tipos
-                salary: 'SalÃ¡rio',
-                freelance: 'Freelance',
-                investment: 'Investimento',
-                bonus: 'BÃ´nus',
-                other: 'Outros',
-                forecast: 'PREVISÃO MENSAL',
-                demoMode: 'Modo Demo',
-                loadDemo: 'Carregar Demo',
-                clearAll: 'Limpar Tudo',
-                welcome: 'Bem-vindo ao Finance HUD!',
-                welcomeMessage: 'Quer começar com dados de exemplo?',
-                loadDemoData: 'Sim, carregar demo',
-                startFromScratch: 'Não, começar do zero',
-                confirmClear: 'Tem certeza que deseja limpar TODOS os dados?',
-                demoLoaded: 'Dados carregados!',
-                dataCleared: 'Dados removidos!',
-                demoActive: 'Modo demo ativo',
-                export: 'Exportar',
-                copyPreviousMonth: 'Copiar Mês Anterior',
-                duplicate: 'Duplicar',
-                projectedExpenses: 'Despesas Provisionadas',
-                projectedIncome: 'Receitas Previstas',
-                surplus: 'SUPERÁVIT',
-                deficit: 'DÉFICIT',
-                youNeed: 'VOCÊ PRECISA',
-                increaseIncome: 'Ganhar mais',
-                reduceExpenses: 'Cortar despesas',
-                onTrack: 'No caminho certo!',
-                savingExtra: 'Economizando extra',
-                closeToGoal: 'Faltam',
-                toReachGoal: 'para a meta',
-            },
-            en: { 
-                title: 'FINANCE HUD',
-                login: 'LOGIN',
-                createAccount: 'CREATE ACCOUNT',
-                email: 'Email',
-                password: 'Password',
-                logout: 'Logout',
-                // Dashboard
-                monthlyIncome: 'INCOME',
-                monthlyExpenses: 'EXPENSES',
-                balance: 'BALANCE',
-                fixedExpenses: 'FIXED EXPENSES',
-                reserves: 'RESERVES',
-                savingsGoal: 'SAVINGS GOAL',
-                // Income
-                newIncome: 'NEW INCOME',
-                incomeList: 'MONTHLY INCOME',
-                noIncome: 'No income registered',
-                // Expenses
-                monthlyTotal: 'MONTHLY TOTAL',
-                accumulated: 'accumulated',
-                paid: 'paid',
-                trend: '6-MONTH TREND',
-                categoryBreakdown: 'SPENDING BY CATEGORY',
-                newExpense: 'NEW EXPENSE',
-                description: 'Description',
-                amount: 'Amount ($)',
-                dueDay: 'Due day (1-31)',
-                add: 'Add',
-                edit: 'Edit',
-                delete: 'Delete',
-                pay: 'Pay',
-                markUsed: 'Mark Used',
-                used: 'Used',
-                fixed: 'Fixed (with due date)',
-                reserve: 'Reserve (no due date)',
-                monthly: 'Monthly',
-                quarterly: 'Quarterly',
-                semiannual: 'Semiannual',
-                annual: 'Annual',
-                biannual: 'Biannual',
-                fixedList: 'FIXED EXPENSES',
-                reservesList: 'RESERVES (No Due Date)',
-                noFixed: 'No fixed expenses',
-                day: 'Day',
-                editExpense: 'EDIT EXPENSE',
-                editIncome: 'EDIT INCOME',
-                cancel: 'Cancel',
-                save: 'Save',
-                // Automation
-                copyLastMonth: 'Copy Last Month',
-                importCSV: 'Import CSV',
-                exportCSV: 'Export CSV',
-                // Goals
-                goalAmount: 'Goal ($)',
-                goalProgress: 'Progress',
-                setGoal: 'Set Goal',
-                // Auth
-                forgotPassword: 'Forgot password',
-                resetPassword: 'RESET PASSWORD',
-                backToLogin: 'Back to login',
-                sendResetEmail: 'Send reset email',
-                loading: 'Loading...',
-                // Errors
-                errorInvalidCredentials: 'Invalid email or password',
-                errorUserNotFound: 'Email not registered',
-                errorWeakPassword: 'Password must be at least 6 characters',
-                errorEmailInUse: 'This email is already registered',
-                errorInvalidEmail: 'Invalid email',
-                errorGeneric: 'Error processing. Please try again.',
-                errorNetworkFailed: 'Connection error. Check your internet.',
-                successPasswordReset: 'Reset email sent! Check your inbox.',
-                errorTooManyRequests: 'Too many attempts. Wait a few minutes.',
-                // Types
-                salary: 'Salary',
-                freelance: 'Freelance',
-                investment: 'Investment',
-                bonus: 'Bonus',
-                other: 'Other',
-                forecast: 'MONTHLY FORECAST',
-                demoMode: 'Demo Mode',
-                loadDemo: 'Load Demo',
-                clearAll: 'Clear All',
-                welcome: 'Welcome to Finance HUD!',
-                welcomeMessage: 'Want example data?',
-                loadDemoData: 'Yes, load demo',
-                startFromScratch: 'No, start fresh',
-                confirmClear: 'Clear ALL data?',
-                demoLoaded: 'Data loaded!',
-                dataCleared: 'Data removed!',
-                demoActive: 'Demo mode active',
-                export: 'Export',
-                copyPreviousMonth: 'Copy Previous Month',
-                duplicate: 'Duplicate',
-                projectedExpenses: 'Projected Expenses',
-                projectedIncome: 'Projected Income',
-                surplus: 'SURPLUS',
-                deficit: 'DEFICIT',
-                youNeed: 'YOU NEED TO',
-                increaseIncome: 'Earn more',
-                reduceExpenses: 'Cut expenses',
-                onTrack: 'On track!',
-                savingExtra: 'Saving extra',
-                closeToGoal: 'Only',
-                toReachGoal: 'to goal',
-            }
-        };
+ const translations = {
+ pt: { 
+ title: 'FINANCE HUD',
+ login: 'ENTRAR',
+ createAccount: 'CRIAR CONTA',
+ email: 'Email',
+ password: 'Senha',
+ logout: 'Sair',
+ // Dashboard
+ monthlyIncome: 'RECEITAS',
+ monthlyExpenses: 'DESPESAS',
+ balance: 'SALDO',
+ fixedExpenses: 'DESPESAS FIXAS',
+ reserves: 'RESERVAS',
+ savingsGoal: 'META DE ECONOMIA',
+ // Receitas
+ newIncome: 'NOVA RECEITA',
+ incomeList: 'RECEITAS DO MÃS',
+ noIncome: 'Nenhuma receita cadastrada',
+ // Despesas
+ monthlyTotal: 'TOTAL MENSAL',
+ accumulated: 'acumulado',
+ paid: 'pago',
+ trend: 'TENDÃNCIA 6 MESES',
+ categoryBreakdown: 'GASTOS POR CATEGORIA',
+ newExpense: 'NOVA DESPESA',
+ description: 'DescriÃÃo',
+ amount: 'Valor ($)',
+ dueDay: 'Dia (1-31)',
+ add: 'Adicionar',
+ edit: 'Editar',
+ delete: 'Excluir',
+ pay: 'Pagar',
+ markUsed: 'Marcar Usado',
+ used: 'Usado',
+ fixed: 'Fixa (com vencimento)',
+ reserve: 'Reserva (sem vencimento)',
+ monthly: 'Mensal',
+ quarterly: 'Trimestral',
+ semiannual: 'Semestral',
+ annual: 'Anual',
+ biannual: 'Bianual',
+ fixedList: 'DESPESAS FIXAS',
+ reservesList: 'RESERVAS (Sem Vencimento)',
+ noFixed: 'Nenhuma despesa fixa',
+ day: 'Dia',
+ editExpense: 'EDITAR DESPESA',
+ editIncome: 'EDITAR RECEITA',
+ cancel: 'Cancelar',
+ save: 'Salvar',
+ // AutomaÃÃo
+ copyLastMonth: 'Copiar MÃs Anterior',
+ importCSV: 'Importar CSV',
+ exportCSV: 'Exportar CSV',
+ // Metas
+ goalAmount: 'Meta ($)',
+ goalProgress: 'Progresso',
+ setGoal: 'Definir Meta',
+ // Auth
+ forgotPassword: 'Esqueci minha senha',
+ resetPassword: 'RECUPERAR SENHA',
+ backToLogin: 'Voltar ao login',
+ sendResetEmail: 'Enviar email de recuperaÃÃo',
+ loading: 'Carregando...',
+ // Erros
+ errorInvalidCredentials: 'Email ou senha incorretos',
+ errorUserNotFound: 'Email nÃo cadastrado',
+ errorWeakPassword: 'A senha deve ter pelo menos 6 caracteres',
+ errorEmailInUse: 'Este email jÃ estÃ cadastrado',
+ errorInvalidEmail: 'Email invÃlido',
+ errorGeneric: 'Erro ao processar. Tente novamente.',
+ errorNetworkFailed: 'Erro de conexÃo. Verifique sua internet.',
+ successPasswordReset: 'Email de recuperaÃÃo enviado! Verifique sua caixa de entrada.',
+ errorTooManyRequests: 'Muitas tentativas. Aguarde alguns minutos.',
+ // Tipos
+ salary: 'SalÃrio',
+ freelance: 'Freelance',
+ investment: 'Investimento',
+ bonus: 'BÃnus',
+ other: 'Outros'
+ },
+ en: { 
+ title: 'FINANCE HUD',
+ login: 'LOGIN',
+ createAccount: 'CREATE ACCOUNT',
+ email: 'Email',
+ password: 'Password',
+ logout: 'Logout',
+ // Dashboard
+ monthlyIncome: 'INCOME',
+ monthlyExpenses: 'EXPENSES',
+ balance: 'BALANCE',
+ fixedExpenses: 'FIXED EXPENSES',
+ reserves: 'RESERVES',
+ savingsGoal: 'SAVINGS GOAL',
+ // Income
+ newIncome: 'NEW INCOME',
+ incomeList: 'MONTHLY INCOME',
+ noIncome: 'No income registered',
+ // Expenses
+ monthlyTotal: 'MONTHLY TOTAL',
+ accumulated: 'accumulated',
+ paid: 'paid',
+ trend: '6-MONTH TREND',
+ categoryBreakdown: 'SPENDING BY CATEGORY',
+ newExpense: 'NEW EXPENSE',
+ description: 'Description',
+ amount: 'Amount ($)',
+ dueDay: 'Due day (1-31)',
+ add: 'Add',
+ edit: 'Edit',
+ delete: 'Delete',
+ pay: 'Pay',
+ markUsed: 'Mark Used',
+ used: 'Used',
+ fixed: 'Fixed (with due date)',
+ reserve: 'Reserve (no due date)',
+ monthly: 'Monthly',
+ quarterly: 'Quarterly',
+ semiannual: 'Semiannual',
+ annual: 'Annual',
+ biannual: 'Biannual',
+ fixedList: 'FIXED EXPENSES',
+ reservesList: 'RESERVES (No Due Date)',
+ noFixed: 'No fixed expenses',
+ day: 'Day',
+ editExpense: 'EDIT EXPENSE',
+ editIncome: 'EDIT INCOME',
+ cancel: 'Cancel',
+ save: 'Save',
+ // Automation
+ copyLastMonth: 'Copy Last Month',
+ importCSV: 'Import CSV',
+ exportCSV: 'Export CSV',
+ // Goals
+ goalAmount: 'Goal ($)',
+ goalProgress: 'Progress',
+ setGoal: 'Set Goal',
+ // Auth
+ forgotPassword: 'Forgot password',
+ resetPassword: 'RESET PASSWORD',
+ backToLogin: 'Back to login',
+ sendResetEmail: 'Send reset email',
+ loading: 'Loading...',
+ // Errors
+ errorInvalidCredentials: 'Invalid email or password',
+ errorUserNotFound: 'Email not registered',
+ errorWeakPassword: 'Password must be at least 6 characters',
+ errorEmailInUse: 'This email is already registered',
+ errorInvalidEmail: 'Invalid email',
+ errorGeneric: 'Error processing. Please try again.',
+ errorNetworkFailed: 'Connection error. Check your internet.',
+ successPasswordReset: 'Reset email sent! Check your inbox.',
+ errorTooManyRequests: 'Too many attempts. Wait a few minutes.',
+ // Types
+ salary: 'Salary',
+ freelance: 'Freelance',
+ investment: 'Investment',
+ bonus: 'Bonus',
+ other: 'Other'
+ }
+ };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let currentUser = null, expenses = [], incomes = [], customCategories = [], savingsGoal = 0;
-        let showSettings = false, editingExpense = null, editingIncome = null;
-        let trendChartInstance = null, categoryChartInstance = null;
-        let currentLang = 'pt', isLoading = false, authError = '', showForgotPassword = false;
+ const app = initializeApp(firebaseConfig);
+ const auth = getAuth(app);
+ const db = getFirestore(app);
+ 
+ let currentUser = null, expenses = [], incomes = [], customCategories = [], savingsGoal = 0;
+ let showSettings = false, editingExpense = null, editingIncome = null;
+ let trendChartInstance = null, categoryChartInstance = null;
+ let currentLang = 'pt', isLoading = false, authError = '', showForgotPassword = false;
         let demoMode = false, showWelcomeModal = false, upcomingBills = [], overdueBills = [];
 
-        const defaultCategories = [
-            { value: 'moradia', label: 'ðŸ  Moradia', labelEn: 'ðŸ  Housing', isDefault: true },
-            { value: 'cartao', label: 'ðŸ’³ CartÃµes', labelEn: 'ðŸ’³ Cards', isDefault: true },
-            { value: 'carro', label: 'ðŸš— Carro', labelEn: 'ðŸš— Car', isDefault: true },
-            { value: 'alimentacao', label: 'ðŸ” AlimentaÃ§Ã£o', labelEn: 'ðŸ” Food', isDefault: true },
-            { value: 'lazer', label: 'ðŸŽ® Lazer', labelEn: 'ðŸŽ® Leisure', isDefault: true },
-            { value: 'saude', label: 'ðŸ’Š SaÃºde', labelEn: 'ðŸ’Š Health', isDefault: true },
-            { value: 'outros', label: 'ðŸ“¦ Outros', labelEn: 'ðŸ“¦ Others', isDefault: true }
-        ];
+ const defaultCategories = [
+ { value: 'moradia', label: 'Moradia', labelEn: 'Housing', isDefault: true },
+ { value: 'cartao', label: 'Cartoes', labelEn: 'Cards', isDefault: true },
+ { value: 'carro', label: 'Carro', labelEn: 'Car', isDefault: true },
+ { value: 'alimentacao', label: 'Alimentacao', labelEn: 'Food', isDefault: true },
+ { value: 'lazer', label: 'Lazer', labelEn: 'Leisure', isDefault: true },
+ { value: 'saude', label: 'Saude', labelEn: 'Health', isDefault: true },
+ { value: 'outros', label: 'Outros', labelEn: 'Others', isDefault: true }
+ ];
 
-        const incomeTypes = [
-            { value: 'salary', labelPt: 'ðŸ’¼ SalÃ¡rio', labelEn: 'ðŸ’¼ Salary' },
-            { value: 'freelance', labelPt: 'ðŸ’» Freelance', labelEn: 'ðŸ’» Freelance' },
-            { value: 'investment', labelPt: 'ðŸ“ˆ Investimento', labelEn: 'ðŸ“ˆ Investment' },
-            { value: 'bonus', labelPt: 'ðŸŽ BÃ´nus', labelEn: 'ðŸŽ Bonus' },
-            { value: 'other', labelPt: 'ðŸ’° Outros', labelEn: 'ðŸ’° Other' }
-        ];
+ const incomeTypes = [
+ { value: 'salary', labelPt: 'Salario', labelEn: 'Salary' },
+ { value: 'freelance', labelPt: 'Freelance', labelEn: 'Freelance' },
+ { value: 'investment', labelPt: 'Investimento', labelEn: 'Investment' },
+ { value: 'bonus', labelPt: 'Bonus', labelEn: 'Bonus' },
+ { value: 'other', labelPt: 'Outros', labelEn: 'Other' }
+ ];
 
-        const t = (key) => translations[currentLang][key] || key;
-        const getCategoryLabel = (cat) => cat.isDefault ? (currentLang === 'pt' ? cat.label : cat.labelEn) : cat.label;
-        const getIncomeTypeLabel = (type) => {
-            const incType = incomeTypes.find(t => t.value === type);
-            return incType ? (currentLang === 'pt' ? incType.labelPt : incType.labelEn) : type;
-        };
+ const t = (key) => translations[currentLang][key] || key;
+ const getCategoryLabel = (cat) => cat.isDefault ? (currentLang === 'pt' ? cat.label : cat.labelEn) : cat.label;
+ const getIncomeTypeLabel = (type) => {
+ const incType = incomeTypes.find(t => t.value === type);
+ return incType ? (currentLang === 'pt' ? incType.labelPt : incType.labelEn) : type;
+ };
 
+ function getErrorMessage(errorCode) {
+ const errorMap = {
+ 'auth/invalid-credential': 'errorInvalidCredentials',
+ 'auth/user-not-found': 'errorUserNotFound',
+ 'auth/wrong-password': 'errorInvalidCredentials',
+ 'auth/weak-password': 'errorWeakPassword',
+ 'auth/email-already-in-use': 'errorEmailInUse',
+ 'auth/invalid-email': 'errorInvalidEmail',
+ 'auth/network-request-failed': 'errorNetworkFailed',
+ 'auth/too-many-requests': 'errorTooManyRequests'
+ };
+ return t(errorMap[errorCode] || 'errorGeneric');
+ }
 
-        const DEMO_DATA = {
-            incomes: [
-                { description: 'Salário', amount: 5000, monthlyAmount: 5000, type: 'salary', frequency: 'monthly' },
-                { description: 'Freelance', amount: 1200, monthlyAmount: 1200, type: 'freelance', frequency: 'monthly' }
-            ],
-            expenses: [
-                { description: 'Aluguel', amount: 1500, monthlyAmount: 1500, category: 'moradia', frequency: 'monthly', dueDay: 5, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
-                { description: 'Cartão', amount: 800, monthlyAmount: 800, category: 'cartao', frequency: 'monthly', dueDay: 10, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} }
-            ],
-            savingsGoal: 1000
-        };
-
-        function getErrorMessage(errorCode) {
-            const errorMap = {
-                'auth/invalid-credential': 'errorInvalidCredentials',
-                'auth/user-not-found': 'errorUserNotFound',
-                'auth/wrong-password': 'errorInvalidCredentials',
-                'auth/weak-password': 'errorWeakPassword',
-                'auth/email-already-in-use': 'errorEmailInUse',
-                'auth/invalid-email': 'errorInvalidEmail',
-                'auth/network-request-failed': 'errorNetworkFailed',
-                'auth/too-many-requests': 'errorTooManyRequests'
-            };
-            return t(errorMap[errorCode] || 'errorGeneric');
-        }
-
+ 
 
         function calculateAlerts() {
             const now = new Date();
@@ -358,7 +294,7 @@
         }
 
         async function copyPreviousMonth() {
-            if (!currentUser || !confirm('Copiar mês anterior?')) return;
+            if (!currentUser || !confirm('Copiar mes anterior?')) return;
             try {
                 const now = new Date();
                 const currentMonth = now.getMonth();
@@ -376,7 +312,7 @@
                         }
                     }
                 }
-                alert(` ${copied} copiada(s)!`);
+                alert(`${copied} copiada(s)!`);
             } catch (error) {
                 console.error(error);
             }
@@ -388,10 +324,10 @@
             if (!exp) return;
             try {
                 await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
-                    ...exp, description: exp.description + ' (cópia)',
+                    ...exp, description: exp.description + ' (copia)',
                     paymentHistory: {}, usageHistory: {}, createdAt: new Date().toISOString()
                 });
-                alert(' Duplicada!');
+                alert('Duplicada!');
             } catch (error) {
                 console.error(error);
             }
@@ -403,9 +339,9 @@
             if (!inc) return;
             try {
                 await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
-                    ...inc, description: inc.description + ' (cópia)', createdAt: new Date().toISOString()
+                    ...inc, description: inc.description + ' (copia)', createdAt: new Date().toISOString()
                 });
-                alert(' Duplicada!');
+                alert('Duplicada!');
             } catch (error) {
                 console.error(error);
             }
@@ -423,7 +359,8 @@
                 loadSavingsGoal();
                 checkFirstTime();
             }
-            render();
+
+        render();
             updateCharts();
         }
 
@@ -438,7 +375,7 @@
                 }
                 await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { monthlyGoal: DEMO_DATA.savingsGoal });
                 await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { sawWelcome: true, language: currentLang }, { merge: true });
-                alert(' ' + t('demoLoaded'));
+                alert(t('demoLoaded'));
                 showWelcomeModal = false;
             } catch (error) {
                 console.error(error);
@@ -451,7 +388,7 @@
                 for (const inc of incomes) await deleteDoc(doc(db, `users/${currentUser.uid}/incomes/${inc.id}`));
                 for (const exp of expenses) await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${exp.id}`));
                 await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { monthlyGoal: 0 });
-                alert(' ' + t('dataCleared'));
+                alert(t('dataCleared'));
             } catch (error) {
                 console.error(error);
             }
@@ -462,776 +399,795 @@
             const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'));
             if (!docSnap.exists() || !docSnap.data().sawWelcome) {
                 showWelcomeModal = true;
-                render();
+
+        render();
             }
         }
 
         async function skipWelcome() {
             await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { sawWelcome: true, language: currentLang }, { merge: true });
             showWelcomeModal = false;
-            render();
+
+        render();
         }
 
         onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) { 
-                loadLanguage(); 
-                loadExpenses(); 
-                loadIncomes();
-                loadCustomCategories();
-                loadSavingsGoal();
-                checkFirstTime();
-            }
-            render();
-        });
+ currentUser = user;
+ if (user) { 
+ loadLanguage(); 
+ loadExpenses(); 
+ loadIncomes();
+ loadCustomCategories();
+ loadSavingsGoal();
+ }
 
-        async function loadLanguage() {
-            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'));
-            if (docSnap.exists() && docSnap.data().language) currentLang = docSnap.data().language;
-        }
+        render();
+ });
 
-        async function saveLanguage(lang) {
-            currentLang = lang;
-            await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { language: lang }, { merge: true });
-            render();
-        }
+ async function loadLanguage() {
+ const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'));
+ if (docSnap.exists() && docSnap.data().language) currentLang = docSnap.data().language;
+ }
 
-        async function loadExpenses() {
-            onSnapshot(query(collection(db, `users/${currentUser.uid}/expenses`)), (snapshot) => {
-                expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                render();
-                updateCharts();
-            });
-        }
+ async function saveLanguage(lang) {
+ currentLang = lang;
+ await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { language: lang }, { merge: true });
 
-        async function loadIncomes() {
-            onSnapshot(query(collection(db, `users/${currentUser.uid}/incomes`)), (snapshot) => {
-                incomes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                render();
-            });
-        }
+        render();
+ }
 
-        async function loadCustomCategories() {
-            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'categories'));
-            if (docSnap.exists()) customCategories = docSnap.data().categories || [];
-        }
+ async function loadExpenses() {
+ onSnapshot(query(collection(db, `users/${currentUser.uid}/expenses`)), (snapshot) => {
+ expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        async function loadSavingsGoal() {
-            const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'));
-            if (docSnap.exists()) savingsGoal = docSnap.data().monthlyGoal || 0;
-        }
+        render();
+ updateCharts();
+ });
+ }
 
-        async function setSavingsGoal() {
-            const goal = parseFloat(prompt(t('goalAmount') + ':', savingsGoal || '0'));
-            if (!isNaN(goal) && goal >= 0) {
-                savingsGoal = goal;
-                await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { monthlyGoal: goal });
-                render();
-            }
-        }
+ async function loadIncomes() {
+ onSnapshot(query(collection(db, `users/${currentUser.uid}/incomes`)), (snapshot) => {
+ incomes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        function getAllCategories() { return [...defaultCategories, ...customCategories]; }
+        render();
+ });
+ }
 
-        async function handleAuth(isLogin) {
-            const emailInput = document.getElementById('email');
-            const passwordInput = document.getElementById('password');
-            
-            if (!emailInput || !passwordInput) {
-                console.error('Campos de email/senha nÃ£o encontrados');
-                return;
-            }
-            
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
-            
-            authError = '';
-            emailInput.classList.remove('border-red-500');
-            passwordInput.classList.remove('border-red-500');
-            
-            if (!email || !password) {
-                authError = t('errorInvalidEmail');
-                if (!email) emailInput.classList.add('border-red-500');
-                if (!password) passwordInput.classList.add('border-red-500');
-                render();
-                return;
-            }
-            
-            isLoading = true;
-            render();
-            
-            try {
-                if (isLogin) {
-                    console.log('Tentando fazer login...');
-                    await signInWithEmailAndPassword(auth, email, password);
-                    console.log('Login bem-sucedido!');
-                } else {
-                    console.log('Tentando criar conta...');
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    console.log('Conta criada com sucesso!');
-                }
-                authError = '';
-            } catch (error) {
-                console.error('Erro de autenticaÃ§Ã£o:', error.code, error.message);
-                authError = getErrorMessage(error.code);
-                emailInput.classList.add('border-red-500');
-                passwordInput.classList.add('border-red-500');
-            } finally {
-                isLoading = false;
-                render();
-            }
-        }
+ async function loadCustomCategories() {
+ const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'categories'));
+ if (docSnap.exists()) customCategories = docSnap.data().categories || [];
+ }
 
-        async function handlePasswordReset() {
-            const emailInput = document.getElementById('resetEmail');
-            const email = emailInput.value.trim();
-            
-            authError = '';
-            emailInput.classList.remove('border-red-500');
-            
-            if (!email) {
-                authError = t('errorInvalidEmail');
-                emailInput.classList.add('border-red-500');
-                render();
-                return;
-            }
-            
-            isLoading = true;
-            render();
-            
-            try {
-                await sendPasswordResetEmail(auth, email);
-                authError = '';
-                alert(t('successPasswordReset'));
-                showForgotPassword = false;
-            } catch (error) {
-                authError = getErrorMessage(error.code);
-                emailInput.classList.add('border-red-500');
-            } finally {
-                isLoading = false;
-                render();
-            }
-        }
+ async function loadSavingsGoal() {
+ const docSnap = await getDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'));
+ if (docSnap.exists()) savingsGoal = docSnap.data().monthlyGoal || 0;
+ }
 
-        // INCOME FUNCTIONS
-        async function addIncome(e) {
-            e.preventDefault();
-            const description = document.getElementById('incomeDescription').value;
-            const amount = parseFloat(document.getElementById('incomeAmount').value);
-            const type = document.getElementById('incomeType').value;
-            const frequency = document.getElementById('incomeFrequency').value;
-            
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
-            const monthlyAmount = amount / divisors[frequency];
-            
-            await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
-                description, amount, monthlyAmount, type, frequency,
-                createdAt: new Date().toISOString()
-            });
-            document.getElementById('incomeForm').reset();
-        }
+ async function setSavingsGoal() {
+ const goal = parseFloat(prompt(t('goalAmount') + ':', savingsGoal || '0'));
+ if (!isNaN(goal) && goal >= 0) {
+ savingsGoal = goal;
+ await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { monthlyGoal: goal });
 
-        function startEditIncome(incomeId) {
-            const income = incomes.find(i => i.id === incomeId);
-            if (!income) return;
-            editingIncome = { ...income };
-            render();
-        }
+        render();
+ }
+ }
 
-        function cancelEditIncome() {
-            editingIncome = null;
-            render();
-        }
+ function getAllCategories() { return [...defaultCategories, ...customCategories]; }
 
-        async function saveEditIncome(e) {
-            e.preventDefault();
-            const description = document.getElementById('editIncomeDescription').value;
-            const amount = parseFloat(document.getElementById('editIncomeAmount').value);
-            const type = document.getElementById('editIncomeType').value;
-            const frequency = document.getElementById('editIncomeFrequency').value;
-            
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
-            const monthlyAmount = amount / divisors[frequency];
-            
-            await updateDoc(doc(db, `users/${currentUser.uid}/incomes/${editingIncome.id}`), {
-                description, amount, monthlyAmount, type, frequency
-            });
-            editingIncome = null;
-            render();
-        }
+ async function handleAuth(isLogin) {
+ const emailInput = document.getElementById('email');
+ const passwordInput = document.getElementById('password');
+ 
+ if (!emailInput || !passwordInput) {
+ console.error('Campos de email/senha nÃo encontrados');
+ return;
+ }
+ 
+ const email = emailInput.value.trim();
+ const password = passwordInput.value;
+ 
+ authError = '';
+ emailInput.classList.remove('border-red-500');
+ passwordInput.classList.remove('border-red-500');
+ 
+ if (!email || !password) {
+ authError = t('errorInvalidEmail');
+ if (!email) emailInput.classList.add('border-red-500');
+ if (!password) passwordInput.classList.add('border-red-500');
 
-        async function deleteIncome(incomeId) {
-            if (confirm(t('delete') + '?')) {
-                await deleteDoc(doc(db, `users/${currentUser.uid}/incomes/${incomeId}`));
-            }
-        }
+        render();
+ return;
+ }
+ 
+ isLoading = true;
 
-        // EXPENSE FUNCTIONS
-        async function addExpense(e) {
-            e.preventDefault();
-            const description = document.getElementById('description').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            const category = document.getElementById('category').value;
-            const frequency = document.getElementById('frequency').value;
-            const expenseType = document.getElementById('expenseType').value;
-            const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('dueDay').value) : null;
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
-            const monthlyAmount = amount / divisors[frequency];
-            await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
-                description, amount, monthlyAmount, category, frequency, expenseType, dueDay,
-                paymentHistory: {}, usageHistory: {}, createdAt: new Date().toISOString()
-            });
-            document.getElementById('expenseForm').reset();
-        }
+        render();
+ 
+ try {
+ if (isLogin) {
+ console.log('Tentando fazer login...');
+ await signInWithEmailAndPassword(auth, email, password);
+ console.log('Login bem-sucedido!');
+ } else {
+ console.log('Tentando criar conta...');
+ await createUserWithEmailAndPassword(auth, email, password);
+ console.log('Conta criada com sucesso!');
+ }
+ authError = '';
+ } catch (error) {
+ console.error('Erro de autenticaÃÃo:', error.code, error.message);
+ authError = getErrorMessage(error.code);
+ emailInput.classList.add('border-red-500');
+ passwordInput.classList.add('border-red-500');
+ } finally {
+ isLoading = false;
 
-        function startEdit(expenseId) {
-            const expense = expenses.find(e => e.id === expenseId);
-            if (!expense) { alert('Not found'); return; }
-            editingExpense = { ...expense };
-            if (!editingExpense.expenseType) editingExpense.expenseType = 'fixed';
-            render();
-        }
+        render();
+ }
+ }
 
-        function cancelEdit() { editingExpense = null; render(); }
+ async function handlePasswordReset() {
+ const emailInput = document.getElementById('resetEmail');
+ const email = emailInput.value.trim();
+ 
+ authError = '';
+ emailInput.classList.remove('border-red-500');
+ 
+ if (!email) {
+ authError = t('errorInvalidEmail');
+ emailInput.classList.add('border-red-500');
 
-        async function saveEdit(e) {
-            e.preventDefault();
-            const description = document.getElementById('editDescription').value;
-            const amount = parseFloat(document.getElementById('editAmount').value);
-            const category = document.getElementById('editCategory').value;
-            const frequency = document.getElementById('editFrequency').value;
-            const expenseType = document.getElementById('editExpenseType').value;
-            const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('editDueDay').value) : null;
-            const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
-            const monthlyAmount = amount / divisors[frequency];
-            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${editingExpense.id}`), {
-                description, amount, monthlyAmount, category, frequency, expenseType, dueDay
-            });
-            editingExpense = null;
-            render();
-        }
+        render();
+ return;
+ }
+ 
+ isLoading = true;
 
-        async function togglePaid(expenseId, month, year) {
-            const expense = expenses.find(e => e.id === expenseId);
-            const key = `${year}-${month}`;
-            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
-                paymentHistory: { ...expense.paymentHistory, [key]: !expense.paymentHistory[key] }
-            });
-        }
+        render();
+ 
+ try {
+ await sendPasswordResetEmail(auth, email);
+ authError = '';
+ alert(t('successPasswordReset'));
+ showForgotPassword = false;
+ } catch (error) {
+ authError = getErrorMessage(error.code);
+ emailInput.classList.add('border-red-500');
+ } finally {
+ isLoading = false;
 
-        async function toggleUsed(expenseId, month, year) {
-            const expense = expenses.find(e => e.id === expenseId);
-            const key = `${year}-${month}`;
-            await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
-                usageHistory: { ...expense.usageHistory, [key]: !expense.usageHistory[key] }
-            });
-        }
+        render();
+ }
+ }
 
-        async function deleteExpense(expenseId) {
-            if (confirm(t('delete') + '?')) await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
-        }
+ // INCOME FUNCTIONS
+ async function addIncome(e) {
+ e.preventDefault();
+ const description = document.getElementById('incomeDescription').value;
+ const amount = parseFloat(document.getElementById('incomeAmount').value);
+ const type = document.getElementById('incomeType').value;
+ const frequency = document.getElementById('incomeFrequency').value;
+ 
+ const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+ const monthlyAmount = amount / divisors[frequency];
+ 
+ await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
+ description, amount, monthlyAmount, type, frequency,
+ createdAt: new Date().toISOString()
+ });
+ document.getElementById('incomeForm').reset();
+ }
 
-        function updateCharts() {
-            updateTrendChart();
-            updateCategoryChart();
-        }
+ function startEditIncome(incomeId) {
+ const income = incomes.find(i => i.id === incomeId);
+ if (!income) return;
+ editingIncome = { ...income };
 
-        function updateTrendChart() {
-            if (!currentUser || expenses.length === 0) return;
-            const canvas = document.getElementById('trendChart');
-            if (!canvas) return;
-            const now = new Date();
-            const last6Months = [], monthlyTotals = [];
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                last6Months.push(date.toLocaleDateString(currentLang === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', year: 'numeric' }));
-                const total = expenses.reduce((sum, exp) => sum + (exp.monthlyAmount || exp.amount), 0);
-                monthlyTotals.push(total.toFixed(2));
-            }
-            if (trendChartInstance) trendChartInstance.destroy();
-            trendChartInstance = new Chart(canvas.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: last6Months,
-                    datasets: [{ 
-                        label: t('monthlyTotal'), 
-                        data: monthlyTotals, 
-                        borderColor: '#a78bfa', 
-                        backgroundColor: 'rgba(167, 139, 250, 0.1)', 
-                        tension: 0.4, 
-                        fill: true 
-                    }]
-                },
-                options: {
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { callback: (v) => '$' + v, color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
-                    }
-                }
-            });
-        }
+        render();
+ }
 
-        function updateCategoryChart() {
-            if (!currentUser || expenses.length === 0) return;
-            const canvas = document.getElementById('categoryChart');
-            if (!canvas) return;
-            
-            const allCategories = getAllCategories();
-            const categoryTotals = {};
-            
-            expenses.forEach(exp => {
-                const amount = exp.monthlyAmount || exp.amount || 0;
-                if (!categoryTotals[exp.category]) categoryTotals[exp.category] = 0;
-                categoryTotals[exp.category] += amount;
-            });
-            
-            const labels = [];
-            const data = [];
-            const colors = ['#a78bfa', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#ec4899', '#8b5cf6'];
-            
-            Object.entries(categoryTotals).forEach(([catValue, total]) => {
-                const cat = allCategories.find(c => c.value === catValue);
-                labels.push(cat ? getCategoryLabel(cat) : catValue);
-                data.push(total.toFixed(2));
-            });
-            
-            if (categoryChartInstance) categoryChartInstance.destroy();
-            categoryChartInstance = new Chart(canvas.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors.slice(0, labels.length),
-                        borderColor: '#1f2937',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#9ca3af', padding: 10 }
-                        }
-                    }
-                }
-            });
-        }
+ function cancelEditIncome() {
+ editingIncome = null;
 
-        function render() {
-            const app = document.getElementById('app');
-            
-            if (!currentUser) {
-                if (showForgotPassword) {
-                    app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white">
-                        <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
-                            <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('resetPassword')}</h1>
-                            <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
-                            ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">${authError}</div>` : ''}
-                            <div class="space-y-4">
-                                <input type="email" id="resetEmail" placeholder="${t('email')}" 
-                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
-                                <button type="button" onclick="handlePasswordReset()" 
-                                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                                    ${isLoading ? 'disabled' : ''}>
-                                    ${isLoading ? t('loading') : 'ðŸ“§ ' + t('sendResetEmail')}
-                                </button>
-                                <button type="button" onclick="toggleForgotPassword()" 
-                                    class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition-colors">
-                                    â† ${t('backToLogin')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-                } else {
-                    app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white">
-                        <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
-                            <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1>
-                            <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
-                            ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">âš ï¸ ${authError}</div>` : ''}
-                            <div class="space-y-4">
-                                <input type="email" id="email" placeholder="${t('email')}" 
-                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
-                                    onkeypress="if(event.key==='Enter') handleAuth(true)">
-                                <input type="password" id="password" placeholder="${t('password')}" 
-                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
-                                    onkeypress="if(event.key==='Enter') handleAuth(true)">
-                                <button type="button" onclick="handleAuth(true)" 
-                                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                                    ${isLoading ? 'disabled' : ''}>
-                                    ${isLoading ? 'â³ ' + t('loading') : 'ðŸ” ' + t('login')}
-                                </button>
-                                <button type="button" onclick="handleAuth(false)" 
-                                    class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                                    ${isLoading ? 'disabled' : ''}>
-                                    ${isLoading ? 'â³ ' + t('loading') : 'âœ¨ ' + t('createAccount')}
-                                </button>
-                                <button type="button" onclick="toggleForgotPassword()" 
-                                    class="w-full text-purple-300 hover:text-purple-200 text-sm underline transition-colors">
-                                    ðŸ”‘ ${t('forgotPassword')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-                }
-                return;
-            }
+        render();
+ }
 
-            // CÃ¡lculos do dashboard
-            const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
-            const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType).map(exp => ({ 
-                ...exp, 
-                isPaid: exp.paymentHistory?.[`${currentYear}-${currentMonth}`] || false, 
-                displayAmount: exp.monthlyAmount || exp.amount 
-            }));
-            const reserves = expenses.filter(exp => exp.expenseType === 'reserve').map(exp => ({ 
-                ...exp, 
-                isUsed: exp.usageHistory?.[`${currentYear}-${currentMonth}`] || false, 
-                displayAmount: exp.monthlyAmount || exp.amount, 
-                accumulated: exp.displayAmount 
-            }));
-            
-            const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.monthlyAmount || exp.amount), 0);
-            const totalIncome = incomes.reduce((sum, inc) => sum + (inc.monthlyAmount || inc.amount), 0);
-            const balance = totalIncome - totalExpenses;
-            const paidCount = fixedExpenses.filter(e => e.isPaid).length;
-            
-            const goalProgress = savingsGoal > 0 ? Math.min((balance / savingsGoal) * 100, 100) : 0;
-            
-            const allCategories = getAllCategories();
+ async function saveEditIncome(e) {
+ e.preventDefault();
+ const description = document.getElementById('editIncomeDescription').value;
+ const amount = parseFloat(document.getElementById('editIncomeAmount').value);
+ const type = document.getElementById('editIncomeType').value;
+ const frequency = document.getElementById('editIncomeFrequency').value;
+ 
+ const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+ const monthlyAmount = amount / divisors[frequency];
+ 
+ await updateDoc(doc(db, `users/${currentUser.uid}/incomes/${editingIncome.id}`), {
+ description, amount, monthlyAmount, type, frequency
+ });
+ editingIncome = null;
 
-            app.innerHTML = `
-            <div class="min-h-screen text-white p-4">
-                <div class="max-w-7xl mx-auto">
-                    <!-- Header -->
-                    <div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center">
-                        <div>
-                            <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1>
-                            <p class="text-xs text-gray-500">${APP_VERSION}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="toggleLang()" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg text-sm">
-                                ${currentLang === 'pt' ? 'ðŸ‡§ðŸ‡· PT' : 'ðŸ‡ºðŸ‡¸ EN'}
-                            </button>
-                            <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm">${t('logout')}</button>
-                        </div>
-                    </div>
+        render();
+ }
 
-                    <!-- Cards de Resumo -->
-                    <div class="grid md:grid-cols-4 gap-4 mb-4">
-                        <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
-                            <h3 class="text-sm text-green-300 font-semibold mb-2">ðŸ’° ${t('monthlyIncome')}</h3>
-                            <p class="text-4xl font-bold text-green-400">$${totalIncome.toFixed(2)}</p>
-                        </div>
-                        <div class="bg-black/60 border-2 border-red-500/30 rounded-xl p-6">
-                            <h3 class="text-sm text-red-300 font-semibold mb-2">ðŸ“‰ ${t('monthlyExpenses')}</h3>
-                            <p class="text-4xl font-bold text-red-400">$${totalExpenses.toFixed(2)}</p>
-                        </div>
-                        <div class="bg-black/60 border-2 border-${balance >= 0 ? 'green' : 'red'}-500/30 rounded-xl p-6">
-                            <h3 class="text-sm text-${balance >= 0 ? 'green' : 'red'}-300 font-semibold mb-2">ðŸ’³ ${t('balance')}</h3>
-                            <p class="text-4xl font-bold text-${balance >= 0 ? 'green' : 'red'}-400">$${balance.toFixed(2)}</p>
-                        </div>
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 cursor-pointer hover:bg-purple-900/20" onclick="setSavingsGoal()">
-                            <h3 class="text-sm text-purple-300 font-semibold mb-2">ðŸŽ¯ ${t('savingsGoal')}</h3>
-                            <p class="text-2xl font-bold text-purple-400">$${savingsGoal.toFixed(2)}</p>
-                            ${savingsGoal > 0 ? `<div class="mt-2 bg-gray-700 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full" style="width: ${goalProgress}%"></div></div><p class="text-xs text-gray-400 mt-1">${goalProgress.toFixed(0)}%</p>` : '<p class="text-xs text-gray-400 mt-1">Clique para definir</p>'}
-                        </div>
-                    </div>
+ async function deleteIncome(incomeId) {
+ if (confirm(t('delete') + '?')) {
+ await deleteDoc(doc(db, `users/${currentUser.uid}/incomes/${incomeId}`));
+ }
+ }
 
-                    <!-- GrÃ¡ficos -->
-                    <div class="grid md:grid-cols-2 gap-4 mb-4">
-                        ${expenses.length > 0 ? `
-                        <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
-                            <h2 class="text-xl font-bold mb-4">ðŸ“ˆ ${t('trend')}</h2>
-                            <div style="height:250px;"><canvas id="trendChart"></canvas></div>
-                        </div>
-                        <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
-                            <h2 class="text-xl font-bold mb-4">ðŸŽ¨ ${t('categoryBreakdown')}</h2>
-                            <div style="height:250px;"><canvas id="categoryChart"></canvas></div>
-                        </div>
-                        ` : ''}
-                    </div>
+ // EXPENSE FUNCTIONS
+ async function addExpense(e) {
+ e.preventDefault();
+ const description = document.getElementById('description').value;
+ const amount = parseFloat(document.getElementById('amount').value);
+ const category = document.getElementById('category').value;
+ const frequency = document.getElementById('frequency').value;
+ const expenseType = document.getElementById('expenseType').value;
+ const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('dueDay').value) : null;
+ const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+ const monthlyAmount = amount / divisors[frequency];
+ await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
+ description, amount, monthlyAmount, category, frequency, expenseType, dueDay,
+ paymentHistory: {}, usageHistory: {}, createdAt: new Date().toISOString()
+ });
+ document.getElementById('expenseForm').reset();
+ }
 
-                    <!-- Nova Receita -->
-                    ${!editingIncome ? `
-                    <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">ðŸ’° ${t('newIncome')}</h2>
-                        <form id="incomeForm" onsubmit="addIncome(event)" class="space-y-3">
-                            <input type="text" id="incomeDescription" placeholder="${t('description')}" required 
-                                class="w-full bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
-                            <div class="grid grid-cols-3 gap-3">
-                                <input type="number" id="incomeAmount" placeholder="${t('amount')}" step="0.01" required 
-                                    class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
-                                <select id="incomeFrequency" class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="monthly">${t('monthly')}</option>
-                                    <option value="quarterly">${t('quarterly')}</option>
-                                    <option value="semiannual">${t('semiannual')}</option>
-                                    <option value="annual">${t('annual')}</option>
-                                </select>
-                                <select id="incomeType" class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
-                                    ${incomeTypes.map(type => `<option value="${type.value}">${getIncomeTypeLabel(type.value)}</option>`).join('')}
-                                </select>
-                            </div>
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">âœ… ${t('add')}</button>
-                        </form>
-                    </div>
-                    ` : `
-                    <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">âœï¸ ${t('editIncome')}</h2>
-                        <form onsubmit="saveEditIncome(event)" class="space-y-3">
-                            <input type="text" id="editIncomeDescription" value="${editingIncome.description}" required 
-                                class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                            <div class="grid grid-cols-3 gap-3">
-                                <input type="number" id="editIncomeAmount" value="${editingIncome.amount}" step="0.01" required 
-                                    class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                <select id="editIncomeFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="monthly" ${editingIncome.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option>
-                                    <option value="quarterly" ${editingIncome.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option>
-                                    <option value="semiannual" ${editingIncome.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option>
-                                    <option value="annual" ${editingIncome.frequency === 'annual' ? 'selected' : ''}>${t('annual')}</option>
-                                </select>
-                                <select id="editIncomeType" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    ${incomeTypes.map(type => `<option value="${type.value}" ${editingIncome.type === type.value ? 'selected' : ''}>${getIncomeTypeLabel(type.value)}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" onclick="cancelEditIncome()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">âŒ ${t('cancel')}</button>
-                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">ðŸ’¾ ${t('save')}</button>
-                            </div>
-                        </form>
-                    </div>
-                    `}
+ function startEdit(expenseId) {
+ const expense = expenses.find(e => e.id === expenseId);
+ if (!expense) { alert('Not found'); return; }
+ editingExpense = { ...expense };
+ if (!editingExpense.expenseType) editingExpense.expenseType = 'fixed';
 
-                    <!-- Lista de Receitas -->
-                    ${incomes.length > 0 ? `
-                    <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">ðŸ’° ${t('incomeList')}</h2>
-                        <div class="space-y-2">
-                            ${incomes.map(income => `
-                                <div class="p-4 rounded-lg border-2 bg-green-500/10 border-green-500/30">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span>${getIncomeTypeLabel(income.type)}</span>
-                                                <span class="text-xs px-2 py-1 bg-green-500/20 rounded">${t(income.frequency || 'monthly')}</span>
-                                            </div>
-                                            <p class="font-semibold text-white mb-1">${income.description}</p>
-                                            <p class="text-2xl font-bold text-green-400">+$${(income.monthlyAmount || income.amount).toFixed(2)}/mo</p>
-                                        </div>
-                                        <div class="flex gap-2 flex-col">
-                                            <button onclick="startEditIncome('${income.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">âœï¸</button>
-                                            <button onclick="deleteIncome('${income.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">ðŸ—‘ï¸</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
+        render();
+ }
 
-                    <!-- Nova Despesa -->
-                    ${!editingExpense ? `
-                    <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">âž• ${t('newExpense')}</h2>
-                        <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
-                            <input type="text" id="description" placeholder="${t('description')}" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <input type="number" id="amount" placeholder="${t('amount')}" step="0.01" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                <select id="frequency" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="monthly">${t('monthly')}</option>
-                                    <option value="quarterly">${t('quarterly')}</option>
-                                    <option value="semiannual">${t('semiannual')}</option>
-                                    <option value="annual">${t('annual')}</option>
-                                    <option value="biannual">${t('biannual')}</option>
-                                </select>
-                                <select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                    ${allCategories.map(cat => `<option value="${cat.value}">${getCategoryLabel(cat)}</option>`).join('')}
-                                </select>
-                                <select id="expenseType" onchange="toggleDueDay()" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="fixed">ðŸ“… ${t('fixed')}</option>
-                                    <option value="reserve">ðŸ’° ${t('reserve')}</option>
-                                </select>
-                            </div>
-                            <div id="dueDayContainer">
-                                <input type="number" id="dueDay" placeholder="${t('dueDay')}" min="1" max="31" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
-                            </div>
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">âœ… ${t('add')}</button>
-                        </form>
-                    </div>
-                    ` : `
-                    <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">âœï¸ ${t('editExpense')}</h2>
-                        <form onsubmit="saveEdit(event)" class="space-y-3">
-                            <input type="text" id="editDescription" value="${editingExpense.description}" required class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                            <div class="grid grid-cols-2 gap-3">
-                                <input type="number" id="editAmount" value="${editingExpense.amount}" step="0.01" required class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                <select id="editFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="monthly" ${editingExpense.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option>
-                                    <option value="quarterly" ${editingExpense.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option>
-                                    <option value="semiannual" ${editingExpense.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option>
-                                    <option value="annual" ${editingExpense.frequency === 'annual' ? 'selected' : ''}>${t('annual')}</option>
-                                    <option value="biannual" ${editingExpense.frequency === 'biannual' ? 'selected' : ''}>${t('biannual')}</option>
-                                </select>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <select id="editCategory" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    ${allCategories.map(cat => `<option value="${cat.value}" ${editingExpense.category === cat.value ? 'selected' : ''}>${getCategoryLabel(cat)}</option>`).join('')}
-                                </select>
-                                <select id="editExpenseType" onchange="toggleDueDayEdit()" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                                    <option value="fixed" ${editingExpense.expenseType === 'fixed' ? 'selected' : ''}>ðŸ“… ${t('fixed')}</option>
-                                    <option value="reserve" ${editingExpense.expenseType === 'reserve' ? 'selected' : ''}>ðŸ’° ${t('reserve')}</option>
-                                </select>
-                            </div>
-                            <div id="editDueDayContainer" ${editingExpense.expenseType === 'reserve' ? 'style="display:none;"' : ''}>
-                                <input type="number" id="editDueDay" value="${editingExpense.dueDay || 1}" min="1" max="31" class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">âŒ ${t('cancel')}</button>
-                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">ðŸ’¾ ${t('save')}</button>
-                            </div>
-                        </form>
-                    </div>
-                    `}
 
-                    <!-- Lista de Despesas Fixas -->
-                    <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">ðŸ“… ${t('fixedList')}</h2>
-                        <div class="space-y-2">
-                            ${fixedExpenses.length === 0 ? `<p class="text-center text-gray-400 py-8">${t('noFixed')}</p>` : fixedExpenses.map(exp => {
-                                const cat = allCategories.find(c => c.value === exp.category) || { label: 'ðŸ“¦ Other' };
-                                return `<div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span>${getCategoryLabel(cat)}</span>
-                                                <span class="text-xs px-2 py-1 bg-blue-500/20 rounded">${t(exp.frequency || 'monthly')}</span>
-                                                <span class="text-xs px-2 py-1 bg-purple-500/20 rounded">${t('day')} ${exp.dueDay}</span>
-                                            </div>
-                                            <p class="font-semibold text-white mb-1">${exp.description}</p>
-                                            <p class="text-2xl font-bold text-purple-400">$${exp.displayAmount.toFixed(2)}/mo</p>
-                                        </div>
-                                        <div class="flex gap-2 flex-col">
-                                            <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isPaid ? 'âœ“' : t('pay')}</button>
-                                            <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">âœï¸</button>
-                                            <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">ðŸ—‘ï¸</button>
-                                        </div>
-                                    </div>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>
+        render(); }
 
-                    <!-- Lista de Reservas -->
-                    ${reserves.length > 0 ? `
-                    <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
-                        <h2 class="text-xl font-bold mb-4">ðŸ’° ${t('reservesList')}</h2>
-                        <div class="space-y-2">
-                            ${reserves.map(exp => {
-                                const cat = allCategories.find(c => c.value === exp.category) || { label: 'ðŸ“¦ Other' };
-                                return `<div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span>${getCategoryLabel(cat)}</span>
-                                                <span class="text-xs px-2 py-1 bg-green-500/20 rounded">${t(exp.frequency || 'monthly')}</span>
-                                            </div>
-                                            <p class="font-semibold text-white mb-1">${exp.description}</p>
-                                            <p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p>
-                                            <p class="text-sm text-green-300 mt-1">ðŸ’° ${t('accumulated')}: $${exp.accumulated.toFixed(2)}</p>
-                                        </div>
-                                        <div class="flex gap-2 flex-col">
-                                            <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? 'âœ“ ' + t('used') : t('markUsed')}</button>
-                                            <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">âœï¸</button>
-                                            <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">ðŸ—‘ï¸</button>
-                                        </div>
-                                    </div>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
+ async function saveEdit(e) {
+ e.preventDefault();
+ const description = document.getElementById('editDescription').value;
+ const amount = parseFloat(document.getElementById('editAmount').value);
+ const category = document.getElementById('editCategory').value;
+ const frequency = document.getElementById('editFrequency').value;
+ const expenseType = document.getElementById('editExpenseType').value;
+ const dueDay = expenseType === 'fixed' ? parseInt(document.getElementById('editDueDay').value) : null;
+ const divisors = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12, biannual: 24 };
+ const monthlyAmount = amount / divisors[frequency];
+ await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${editingExpense.id}`), {
+ description, amount, monthlyAmount, category, frequency, expenseType, dueDay
+ });
+ editingExpense = null;
 
-                    <!-- Footer -->
-                    <div class="text-center text-gray-500 text-xs py-4 mt-4">
-                        <p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? 'âœ¨ Novo: Receitas + BalanÃ§o + GrÃ¡ficos + Metas' : 'âœ¨ New: Income + Balance + Charts + Goals'}</p>
-                    </div>
-                </div>
-            </div>`;
-            
-            setTimeout(() => { 
-                if (expenses.length > 0) updateCharts(); 
-            }, 100);
-        }
+        render();
+ }
 
-        function toggleDueDay() {
-            const type = document.getElementById('expenseType').value;
-            const container = document.getElementById('dueDayContainer');
-            const input = document.getElementById('dueDay');
-            if (type === 'reserve') { 
-                container.style.display = 'none'; 
-                input.required = false; 
-            } else { 
-                container.style.display = 'block'; 
-                input.required = true; 
-            }
-        }
+ async function togglePaid(expenseId, month, year) {
+ const expense = expenses.find(e => e.id === expenseId);
+ const key = `${year}-${month}`;
+ await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
+ paymentHistory: { ...expense.paymentHistory, [key]: !expense.paymentHistory[key] }
+ });
+ }
 
-        function toggleDueDayEdit() {
-            const type = document.getElementById('editExpenseType').value;
-            const container = document.getElementById('editDueDayContainer');
-            const input = document.getElementById('editDueDay');
-            if (type === 'reserve') { 
-                container.style.display = 'none'; 
-                input.required = false; 
-            } else { 
-                container.style.display = 'block'; 
-                input.required = true; 
-            }
-        }
+ async function toggleUsed(expenseId, month, year) {
+ const expense = expenses.find(e => e.id === expenseId);
+ const key = `${year}-${month}`;
+ await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
+ usageHistory: { ...expense.usageHistory, [key]: !expense.usageHistory[key] }
+ });
+ }
 
-        function toggleLang() { 
-            saveLanguage(currentLang === 'pt' ? 'en' : 'pt'); 
-        }
-        
-        function toggleForgotPassword() {
-            showForgotPassword = !showForgotPassword;
-            authError = '';
-            render();
-        }
+ async function deleteExpense(expenseId) {
+ if (confirm(t('delete') + '?')) await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`));
+ }
 
-        async function handleLogout() {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                alert('Erro ao sair: ' + error.message);
-            }
-        }
+ function updateCharts() {
+ updateTrendChart();
+ updateCategoryChart();
+ }
 
-        // Expor funÃ§Ãµes globalmente
-        window.handleAuth = handleAuth;
-        window.handlePasswordReset = handlePasswordReset;
-        window.handleLogout = handleLogout;
-        window.addIncome = addIncome;
-        window.startEditIncome = startEditIncome;
-        window.cancelEditIncome = cancelEditIncome;
-        window.saveEditIncome = saveEditIncome;
-        window.deleteIncome = deleteIncome;
-        window.addExpense = addExpense;
-        window.togglePaid = togglePaid;
-        window.toggleUsed = toggleUsed;
-        window.deleteExpense = deleteExpense;
-        window.toggleLang = toggleLang;
-        window.toggleForgotPassword = toggleForgotPassword;
-        window.startEdit = startEdit;
-        window.cancelEdit = cancelEdit;
-        window.saveEdit = saveEdit;
-        window.toggleDueDay = toggleDueDay;
-        window.toggleDueDayEdit = toggleDueDayEdit;
-        window.setSavingsGoal = setSavingsGoal;
+ function updateTrendChart() {
+ if (!currentUser || expenses.length === 0) return;
+ const canvas = document.getElementById('trendChart');
+ if (!canvas) return;
+ const now = new Date();
+ const last6Months = [], monthlyTotals = [];
+ for (let i = 5; i >= 0; i--) {
+ const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+ last6Months.push(date.toLocaleDateString(currentLang === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', year: 'numeric' }));
+ const total = expenses.reduce((sum, exp) => sum + (exp.monthlyAmount || exp.amount), 0);
+ monthlyTotals.push(total.toFixed(2));
+ }
+ if (trendChartInstance) trendChartInstance.destroy();
+ trendChartInstance = new Chart(canvas.getContext('2d'), {
+ type: 'line',
+ data: {
+ labels: last6Months,
+ datasets: [{ 
+ label: t('monthlyTotal'), 
+ data: monthlyTotals, 
+ borderColor: '#a78bfa', 
+ backgroundColor: 'rgba(167, 139, 250, 0.1)', 
+ tension: 0.4, 
+ fill: true 
+ }]
+ },
+ options: {
+ responsive: true, 
+ maintainAspectRatio: false,
+ plugins: { legend: { display: false } },
+ scales: {
+ y: { beginAtZero: true, ticks: { callback: (v) => '$' + v, color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+ x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+ }
+ }
+ });
+ }
+
+ function updateCategoryChart() {
+ if (!currentUser || expenses.length === 0) return;
+ const canvas = document.getElementById('categoryChart');
+ if (!canvas) return;
+ 
+ const allCategories = getAllCategories();
+ const categoryTotals = {};
+ 
+ expenses.forEach(exp => {
+ const amount = exp.monthlyAmount || exp.amount || 0;
+ if (!categoryTotals[exp.category]) categoryTotals[exp.category] = 0;
+ categoryTotals[exp.category] += amount;
+ });
+ 
+ const labels = [];
+ const data = [];
+ const colors = ['#a78bfa', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#ec4899', '#8b5cf6'];
+ 
+ Object.entries(categoryTotals).forEach(([catValue, total]) => {
+ const cat = allCategories.find(c => c.value === catValue);
+ labels.push(cat ? getCategoryLabel(cat) : catValue);
+ data.push(total.toFixed(2));
+ });
+ 
+ if (categoryChartInstance) categoryChartInstance.destroy();
+ categoryChartInstance = new Chart(canvas.getContext('2d'), {
+ type: 'doughnut',
+ data: {
+ labels: labels,
+ datasets: [{
+ data: data,
+ backgroundColor: colors.slice(0, labels.length),
+ borderColor: '#1f2937',
+ borderWidth: 2
+ }]
+ },
+ options: {
+ responsive: true,
+ maintainAspectRatio: false,
+ plugins: {
+ legend: {
+ position: 'bottom',
+ labels: { color: '#9ca3af', padding: 10 }
+ }
+ }
+ }
+ });
+ }
+
+ function render() {
+ const app = document.getElementById('app');
+ 
+ if (!currentUser) {
+ if (showForgotPassword) {
+ app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white">
+ <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
+ <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('resetPassword')}</h1>
+ <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
+ ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">${authError}</div>` : ''}
+ <div class="space-y-4">
+ <input type="email" id="resetEmail" placeholder="${t('email')}" 
+ class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
+ <button type="button" onclick="handlePasswordReset()" 
+ class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+ ${isLoading ? 'disabled' : ''}>
+ ${isLoading ? t('loading') : ' ' + t('sendResetEmail')}
+ </button>
+ <button type="button" onclick="toggleForgotPassword()" 
+ class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition-colors">
+ â ${t('backToLogin')}
+ </button>
+ </div>
+ </div>
+ </div>`;
+ } else {
+ app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white">
+ <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
+ <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1>
+ <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
+ ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">â ${authError}</div>` : ''}
+ <div class="space-y-4">
+ <input type="email" id="email" placeholder="${t('email')}" 
+ class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
+ onkeypress="if(event.key==='Enter') handleAuth(true)">
+ <input type="password" id="password" placeholder="${t('password')}" 
+ class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors"
+ onkeypress="if(event.key==='Enter') handleAuth(true)">
+ <button type="button" onclick="handleAuth(true)" 
+ class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+ ${isLoading ? 'disabled' : ''}>
+ ${isLoading ? 'â ' + t('loading') : ' ' + t('login')}
+ </button>
+ <button type="button" onclick="handleAuth(false)" 
+ class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+ ${isLoading ? 'disabled' : ''}>
+ ${isLoading ? 'â ' + t('loading') : 'â ' + t('createAccount')}
+ </button>
+ <button type="button" onclick="toggleForgotPassword()" 
+ class="w-full text-purple-300 hover:text-purple-200 text-sm underline transition-colors">
+ ${t('forgotPassword')}
+ </button>
+ </div>
+ </div>
+ </div>`;
+ }
+ return;
+ }
+
+ // CÃlculos do dashboard
+ const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
+ const fixedExpenses = expenses.filter(exp => exp.expenseType === 'fixed' || !exp.expenseType).map(exp => ({ 
+ ...exp, 
+ isPaid: exp.paymentHistory?.[`${currentYear}-${currentMonth}`] || false, 
+ displayAmount: exp.monthlyAmount || exp.amount 
+ }));
+ const reserves = expenses.filter(exp => exp.expenseType === 'reserve').map(exp => ({ 
+ ...exp, 
+ isUsed: exp.usageHistory?.[`${currentYear}-${currentMonth}`] || false, 
+ displayAmount: exp.monthlyAmount || exp.amount, 
+ accumulated: exp.displayAmount 
+ }));
+ 
+ const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.monthlyAmount || exp.amount), 0);
+ const totalIncome = incomes.reduce((sum, inc) => sum + (inc.monthlyAmount || inc.amount), 0);
+ const balance = totalIncome - totalExpenses;
+ const paidCount = fixedExpenses.filter(e => e.isPaid).length;
+ 
+ const goalProgress = savingsGoal > 0 ? Math.min((balance / savingsGoal) * 100, 100) : 0;
+ 
+ const allCategories = getAllCategories();
+
+ app.innerHTML = `
+ <div class="min-h-screen text-white p-4">
+ <div class="max-w-7xl mx-auto">
+ <!-- Header -->
+ <div class="bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-4 mb-4 flex justify-between items-center">
+ <div>
+ <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1>
+ <p class="text-xs text-gray-500">${APP_VERSION}</p>
+ </div>
+ <div class="flex gap-2">
+ <button onclick="toggleLang()" class="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 rounded-lg text-sm">
+ ${currentLang === 'pt' ? ' PT' : ' EN'}
+ </button>
+ <button onclick="handleLogout()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm">${t('logout')}</button>
+ </div>
+ </div>
+
+ <!-- Cards de Resumo -->
+ <div class="grid md:grid-cols-4 gap-4 mb-4">
+ <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6">
+ <h3 class="text-sm text-green-300 font-semibold mb-2"> ${t('monthlyIncome')}</h3>
+ <p class="text-4xl font-bold text-green-400">$${totalIncome.toFixed(2)}</p>
+ </div>
+ <div class="bg-black/60 border-2 border-red-500/30 rounded-xl p-6">
+ <h3 class="text-sm text-red-300 font-semibold mb-2"> ${t('monthlyExpenses')}</h3>
+ <p class="text-4xl font-bold text-red-400">$${totalExpenses.toFixed(2)}</p>
+ </div>
+ <div class="bg-black/60 border-2 border-${balance >= 0 ? 'green' : 'red'}-500/30 rounded-xl p-6">
+ <h3 class="text-sm text-${balance >= 0 ? 'green' : 'red'}-300 font-semibold mb-2"> ${t('balance')}</h3>
+ <p class="text-4xl font-bold text-${balance >= 0 ? 'green' : 'red'}-400">$${balance.toFixed(2)}</p>
+ </div>
+ <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 cursor-pointer hover:bg-purple-900/20" onclick="setSavingsGoal()">
+ <h3 class="text-sm text-purple-300 font-semibold mb-2"> ${t('savingsGoal')}</h3>
+ <p class="text-2xl font-bold text-purple-400">$${savingsGoal.toFixed(2)}</p>
+ ${savingsGoal > 0 ? `<div class="mt-2 bg-gray-700 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full" style="width: ${goalProgress}%"></div></div><p class="text-xs text-gray-400 mt-1">${goalProgress.toFixed(0)}%</p>` : '<p class="text-xs text-gray-400 mt-1">Clique para definir</p>'}
+ </div>
+ </div>
+
+ <!-- GrÃficos -->
+ <div class="grid md:grid-cols-2 gap-4 mb-4">
+ ${expenses.length > 0 ? `
+ <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6">
+ <h2 class="text-xl font-bold mb-4"> ${t('trend')}</h2>
+ <div style="height:250px;"><canvas id="trendChart"></canvas></div>
+ </div>
+ <div class="bg-black/60 border-2 border-blue-500/30 rounded-xl p-6">
+ <h2 class="text-xl font-bold mb-4"> ${t('categoryBreakdown')}</h2>
+ <div style="height:250px;"><canvas id="categoryChart"></canvas></div>
+ </div>
+ ` : ''}
+ </div>
+
+ <!-- Nova Receita -->
+ ${!editingIncome ? `
+ <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4"> ${t('newIncome')}</h2>
+ <form id="incomeForm" onsubmit="addIncome(event)" class="space-y-3">
+ <input type="text" id="incomeDescription" placeholder="${t('description')}" required 
+ class="w-full bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
+ <div class="grid grid-cols-3 gap-3">
+ <input type="number" id="incomeAmount" placeholder="${t('amount')}" step="0.01" required 
+ class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
+ <select id="incomeFrequency" class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
+ <option value="monthly">${t('monthly')}</option>
+ <option value="quarterly">${t('quarterly')}</option>
+ <option value="semiannual">${t('semiannual')}</option>
+ <option value="annual">${t('annual')}</option>
+ </select>
+ <select id="incomeType" class="bg-black/50 border border-green-500/50 rounded-lg px-4 py-2 text-white">
+ ${incomeTypes.map(type => `<option value="${type.value}">${getIncomeTypeLabel(type.value)}</option>`).join('')}
+ </select>
+ </div>
+ <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">â ${t('add')}</button>
+ </form>
+ </div>
+ ` : `
+ <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4">â ${t('editIncome')}</h2>
+ <form onsubmit="saveEditIncome(event)" class="space-y-3">
+ <input type="text" id="editIncomeDescription" value="${editingIncome.description}" required 
+ class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <div class="grid grid-cols-3 gap-3">
+ <input type="number" id="editIncomeAmount" value="${editingIncome.amount}" step="0.01" required 
+ class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <select id="editIncomeFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <option value="monthly" ${editingIncome.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option>
+ <option value="quarterly" ${editingIncome.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option>
+ <option value="semiannual" ${editingIncome.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option>
+ <option value="annual" ${editingIncome.frequency === 'annual' ? 'selected' : ''}>${t('annual')}</option>
+ </select>
+ <select id="editIncomeType" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ ${incomeTypes.map(type => `<option value="${type.value}" ${editingIncome.type === type.value ? 'selected' : ''}>${getIncomeTypeLabel(type.value)}</option>`).join('')}
+ </select>
+ </div>
+ <div class="grid grid-cols-2 gap-3">
+ <button type="button" onclick="cancelEditIncome()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">â ${t('cancel')}</button>
+ <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg"> ${t('save')}</button>
+ </div>
+ </form>
+ </div>
+ `}
+
+ <!-- Lista de Receitas -->
+ ${incomes.length > 0 ? `
+ <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4"> ${t('incomeList')}</h2>
+ <div class="space-y-2">
+ ${incomes.map(income => `
+ <div class="p-4 rounded-lg border-2 bg-green-500/10 border-green-500/30">
+ <div class="flex justify-between items-start">
+ <div class="flex-1">
+ <div class="flex items-center gap-2 mb-1">
+ <span>${getIncomeTypeLabel(income.type)}</span>
+ <span class="text-xs px-2 py-1 bg-green-500/20 rounded">${t(income.frequency || 'monthly')}</span>
+ </div>
+ <p class="font-semibold text-white mb-1">${income.description}</p>
+ <p class="text-2xl font-bold text-green-400">+$${(income.monthlyAmount || income.amount).toFixed(2)}/mo</p>
+ </div>
+ <div class="flex gap-2 flex-col">
+ <button onclick="startEditIncome('${income.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">â</button>
+ <button onclick="deleteIncome('${income.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm"></button>
+ </div>
+ </div>
+ </div>
+ `).join('')}
+ </div>
+ </div>
+ ` : ''}
+
+ <!-- Nova Despesa -->
+ ${!editingExpense ? `
+ <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4">â ${t('newExpense')}</h2>
+ <form id="expenseForm" onsubmit="addExpense(event)" class="space-y-3">
+ <input type="text" id="description" placeholder="${t('description')}" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ <input type="number" id="amount" placeholder="${t('amount')}" step="0.01" required class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+ <select id="frequency" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+ <option value="monthly">${t('monthly')}</option>
+ <option value="quarterly">${t('quarterly')}</option>
+ <option value="semiannual">${t('semiannual')}</option>
+ <option value="annual">${t('annual')}</option>
+ <option value="biannual">${t('biannual')}</option>
+ </select>
+ <select id="category" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+ ${allCategories.map(cat => `<option value="${cat.value}">${getCategoryLabel(cat)}</option>`).join('')}
+ </select>
+ <select id="expenseType" onchange="toggleDueDay()" class="bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+ <option value="fixed"> ${t('fixed')}</option>
+ <option value="reserve"> ${t('reserve')}</option>
+ </select>
+ </div>
+ <div id="dueDayContainer">
+ <input type="number" id="dueDay" placeholder="${t('dueDay')}" min="1" max="31" required class="w-full bg-black/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white">
+ </div>
+ <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg">â ${t('add')}</button>
+ </form>
+ </div>
+ ` : `
+ <div class="bg-black/60 border-2 border-yellow-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4">â ${t('editExpense')}</h2>
+ <form onsubmit="saveEdit(event)" class="space-y-3">
+ <input type="text" id="editDescription" value="${editingExpense.description}" required class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <div class="grid grid-cols-2 gap-3">
+ <input type="number" id="editAmount" value="${editingExpense.amount}" step="0.01" required class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <select id="editFrequency" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <option value="monthly" ${editingExpense.frequency === 'monthly' ? 'selected' : ''}>${t('monthly')}</option>
+ <option value="quarterly" ${editingExpense.frequency === 'quarterly' ? 'selected' : ''}>${t('quarterly')}</option>
+ <option value="semiannual" ${editingExpense.frequency === 'semiannual' ? 'selected' : ''}>${t('semiannual')}</option>
+ <option value="annual" ${editingExpense.frequency === 'annual' ? 'selected' : ''}>${t('annual')}</option>
+ <option value="biannual" ${editingExpense.frequency === 'biannual' ? 'selected' : ''}>${t('biannual')}</option>
+ </select>
+ </div>
+ <div class="grid grid-cols-2 gap-3">
+ <select id="editCategory" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ ${allCategories.map(cat => `<option value="${cat.value}" ${editingExpense.category === cat.value ? 'selected' : ''}>${getCategoryLabel(cat)}</option>`).join('')}
+ </select>
+ <select id="editExpenseType" onchange="toggleDueDayEdit()" class="bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ <option value="fixed" ${editingExpense.expenseType === 'fixed' ? 'selected' : ''}> ${t('fixed')}</option>
+ <option value="reserve" ${editingExpense.expenseType === 'reserve' ? 'selected' : ''}> ${t('reserve')}</option>
+ </select>
+ </div>
+ <div id="editDueDayContainer" ${editingExpense.expenseType === 'reserve' ? 'style="display:none;"' : ''}>
+ <input type="number" id="editDueDay" value="${editingExpense.dueDay || 1}" min="1" max="31" class="w-full bg-black/50 border border-yellow-500/50 rounded-lg px-4 py-2 text-white">
+ </div>
+ <div class="grid grid-cols-2 gap-3">
+ <button type="button" onclick="cancelEdit()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 rounded-lg">â ${t('cancel')}</button>
+ <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg"> ${t('save')}</button>
+ </div>
+ </form>
+ </div>
+ `}
+
+ <!-- Lista de Despesas Fixas -->
+ <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4"> ${t('fixedList')}</h2>
+ <div class="space-y-2">
+ ${fixedExpenses.length === 0 ? `<p class="text-center text-gray-400 py-8">${t('noFixed')}</p>` : fixedExpenses.map(exp => {
+ const cat = allCategories.find(c => c.value === exp.category) || { label: ' Other' };
+ return `<div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
+ <div class="flex justify-between items-start">
+ <div class="flex-1">
+ <div class="flex items-center gap-2 mb-1">
+ <span>${getCategoryLabel(cat)}</span>
+ <span class="text-xs px-2 py-1 bg-blue-500/20 rounded">${t(exp.frequency || 'monthly')}</span>
+ <span class="text-xs px-2 py-1 bg-purple-500/20 rounded">${t('day')} ${exp.dueDay}</span>
+ </div>
+ <p class="font-semibold text-white mb-1">${exp.description}</p>
+ <p class="text-2xl font-bold text-purple-400">$${exp.displayAmount.toFixed(2)}/mo</p>
+ </div>
+ <div class="flex gap-2 flex-col">
+ <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isPaid ? 'â' : t('pay')}</button>
+ <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">â</button>
+ <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm"></button>
+ </div>
+ </div>
+ </div>`;
+ }).join('')}
+ </div>
+ </div>
+
+ <!-- Lista de Reservas -->
+ ${reserves.length > 0 ? `
+ <div class="bg-black/60 border-2 border-green-500/30 rounded-xl p-6 mb-4">
+ <h2 class="text-xl font-bold mb-4"> ${t('reservesList')}</h2>
+ <div class="space-y-2">
+ ${reserves.map(exp => {
+ const cat = allCategories.find(c => c.value === exp.category) || { label: ' Other' };
+ return `<div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}">
+ <div class="flex justify-between items-start">
+ <div class="flex-1">
+ <div class="flex items-center gap-2 mb-1">
+ <span>${getCategoryLabel(cat)}</span>
+ <span class="text-xs px-2 py-1 bg-green-500/20 rounded">${t(exp.frequency || 'monthly')}</span>
+ </div>
+ <p class="font-semibold text-white mb-1">${exp.description}</p>
+ <p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p>
+ <p class="text-sm text-green-300 mt-1"> ${t('accumulated')}: $${exp.accumulated.toFixed(2)}</p>
+ </div>
+ <div class="flex gap-2 flex-col">
+ <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? 'â ' + t('used') : t('markUsed')}</button>
+ <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">â</button>
+ <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm"></button>
+ </div>
+ </div>
+ </div>`;
+ }).join('')}
+ </div>
+ </div>
+ ` : ''}
+
+ <!-- Footer -->
+ <div class="text-center text-gray-500 text-xs py-4 mt-4">
+ <p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? 'â Novo: Receitas + BalanÃo + GrÃficos + Metas' : 'â New: Income + Balance + Charts + Goals'}</p>
+ </div>
+ </div>
+ </div>`;
+ 
+ setTimeout(() => { 
+ if (expenses.length > 0) updateCharts(); 
+ }, 100);
+ }
+
+ function toggleDueDay() {
+ const type = document.getElementById('expenseType').value;
+ const container = document.getElementById('dueDayContainer');
+ const input = document.getElementById('dueDay');
+ if (type === 'reserve') { 
+ container.style.display = 'none'; 
+ input.required = false; 
+ } else { 
+ container.style.display = 'block'; 
+ input.required = true; 
+ }
+ }
+
+ function toggleDueDayEdit() {
+ const type = document.getElementById('editExpenseType').value;
+ const container = document.getElementById('editDueDayContainer');
+ const input = document.getElementById('editDueDay');
+ if (type === 'reserve') { 
+ container.style.display = 'none'; 
+ input.required = false; 
+ } else { 
+ container.style.display = 'block'; 
+ input.required = true; 
+ }
+ }
+
+ function toggleLang() { 
+ saveLanguage(currentLang === 'pt' ? 'en' : 'pt'); 
+ }
+ 
+ function toggleForgotPassword() {
+ showForgotPassword = !showForgotPassword;
+ authError = '';
+
+        render();
+ }
+
+ async function handleLogout() {
+ try {
+ await signOut(auth);
+ } catch (error) {
+ alert('Erro ao sair: ' + error.message);
+ }
+ }
+
+ // Expor funÃÃes globalmente
+ window.handleAuth = handleAuth;
+ window.handlePasswordReset = handlePasswordReset;
+ window.handleLogout = handleLogout;
+ window.addIncome = addIncome;
+ window.startEditIncome = startEditIncome;
+ window.cancelEditIncome = cancelEditIncome;
+ window.saveEditIncome = saveEditIncome;
+ window.deleteIncome = deleteIncome;
+ window.addExpense = addExpense;
+ window.togglePaid = togglePaid;
+ window.toggleUsed = toggleUsed;
+ window.deleteExpense = deleteExpense;
+ window.toggleLang = toggleLang;
+ window.toggleForgotPassword = toggleForgotPassword;
+ window.startEdit = startEdit;
+ window.cancelEdit = cancelEdit;
+ window.saveEdit = saveEdit;
+ window.toggleDueDay = toggleDueDay;
+ window.toggleDueDayEdit = toggleDueDayEdit;
+ window.setSavingsGoal = setSavingsGoal;
         window.calculateAlerts = calculateAlerts;
         window.getAlertBadgeCount = getAlertBadgeCount;
         window.exportToCSV = exportToCSV;
@@ -1242,7 +1198,12 @@
         window.loadDemoData = loadDemoData;
         window.clearAllData = clearAllData;
         window.skipWelcome = skipWelcome;
-        
+ 
+ if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log(err));
+            });
+        }
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -1250,7 +1211,7 @@
             });
         }
 
-        render();
-    </script>
+                render();
+ </script>
 </body>
 </html>
