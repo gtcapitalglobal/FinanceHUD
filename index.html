@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance HUD v1.3.0</title>
+    <title>Finance HUD v1.4.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -13,10 +13,10 @@
     
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const APP_VERSION = 'v1.3.0';
+        const APP_VERSION = 'v1.4.0';
         const firebaseConfig = {
             apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
             authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
@@ -27,14 +27,119 @@
         };
 
         const translations = {
-            pt: { title: 'FINANCE HUD', login: 'ENTRAR', createAccount: 'CRIAR CONTA', email: 'Email', password: 'Senha', logout: 'Sair', monthlyTotal: 'TOTAL MENSAL', fixedExpenses: 'DESPESAS FIXAS', reserves: 'RESERVAS', accumulated: 'acumulado', paid: 'pago', trend: 'TENDÊNCIA 6 MESES', newExpense: 'NOVA DESPESA', description: 'Descrição', amount: 'Valor ($)', dueDay: 'Dia (1-31)', add: 'Adicionar', edit: 'Editar', delete: 'Excluir', pay: 'Pagar', markUsed: 'Marcar Usado', used: 'Usado', fixed: 'Fixa (com vencimento)', reserve: 'Reserva (sem vencimento)', monthly: 'Mensal', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual', biannual: 'Bianual', fixedList: 'DESPESAS FIXAS', reservesList: 'RESERVAS (Sem Vencimento)', noFixed: 'Nenhuma despesa fixa', day: 'Dia', editExpense: 'EDITAR DESPESA', cancel: 'Cancelar', save: 'Salvar' },
-            en: { title: 'FINANCE HUD', login: 'LOGIN', createAccount: 'CREATE ACCOUNT', email: 'Email', password: 'Password', logout: 'Logout', monthlyTotal: 'MONTHLY TOTAL', fixedExpenses: 'FIXED EXPENSES', reserves: 'RESERVES', accumulated: 'accumulated', paid: 'paid', trend: '6-MONTH TREND', newExpense: 'NEW EXPENSE', description: 'Description', amount: 'Amount ($)', dueDay: 'Due day (1-31)', add: 'Add', edit: 'Edit', delete: 'Delete', pay: 'Pay', markUsed: 'Mark Used', used: 'Used', fixed: 'Fixed (with due date)', reserve: 'Reserve (no due date)', monthly: 'Monthly', quarterly: 'Quarterly', semiannual: 'Semiannual', annual: 'Annual', biannual: 'Biannual', fixedList: 'FIXED EXPENSES', reservesList: 'RESERVES (No Due Date)', noFixed: 'No fixed expenses', day: 'Day', editExpense: 'EDIT EXPENSE', cancel: 'Cancel', save: 'Save' }
+            pt: { 
+                title: 'FINANCE HUD', 
+                login: 'ENTRAR', 
+                createAccount: 'CRIAR CONTA', 
+                email: 'Email', 
+                password: 'Senha', 
+                logout: 'Sair', 
+                monthlyTotal: 'TOTAL MENSAL', 
+                fixedExpenses: 'DESPESAS FIXAS', 
+                reserves: 'RESERVAS', 
+                accumulated: 'acumulado', 
+                paid: 'pago', 
+                trend: 'TENDÊNCIA 6 MESES', 
+                newExpense: 'NOVA DESPESA', 
+                description: 'Descrição', 
+                amount: 'Valor ($)', 
+                dueDay: 'Dia (1-31)', 
+                add: 'Adicionar', 
+                edit: 'Editar', 
+                delete: 'Excluir', 
+                pay: 'Pagar', 
+                markUsed: 'Marcar Usado', 
+                used: 'Usado', 
+                fixed: 'Fixa (com vencimento)', 
+                reserve: 'Reserva (sem vencimento)', 
+                monthly: 'Mensal', 
+                quarterly: 'Trimestral', 
+                semiannual: 'Semestral', 
+                annual: 'Anual', 
+                biannual: 'Bianual', 
+                fixedList: 'DESPESAS FIXAS', 
+                reservesList: 'RESERVAS (Sem Vencimento)', 
+                noFixed: 'Nenhuma despesa fixa', 
+                day: 'Dia', 
+                editExpense: 'EDITAR DESPESA', 
+                cancel: 'Cancelar', 
+                save: 'Salvar',
+                forgotPassword: 'Esqueci minha senha',
+                resetPassword: 'RECUPERAR SENHA',
+                backToLogin: 'Voltar ao login',
+                sendResetEmail: 'Enviar email de recuperação',
+                loading: 'Carregando...',
+                // Mensagens de erro
+                errorInvalidCredentials: 'Email ou senha incorretos',
+                errorUserNotFound: 'Email não cadastrado',
+                errorWeakPassword: 'A senha deve ter pelo menos 6 caracteres',
+                errorEmailInUse: 'Este email já está cadastrado',
+                errorInvalidEmail: 'Email inválido',
+                errorGeneric: 'Erro ao processar. Tente novamente.',
+                errorNetworkFailed: 'Erro de conexão. Verifique sua internet.',
+                successPasswordReset: 'Email de recuperação enviado! Verifique sua caixa de entrada.',
+                errorTooManyRequests: 'Muitas tentativas. Aguarde alguns minutos.'
+            },
+            en: { 
+                title: 'FINANCE HUD', 
+                login: 'LOGIN', 
+                createAccount: 'CREATE ACCOUNT', 
+                email: 'Email', 
+                password: 'Password', 
+                logout: 'Logout', 
+                monthlyTotal: 'MONTHLY TOTAL', 
+                fixedExpenses: 'FIXED EXPENSES', 
+                reserves: 'RESERVES', 
+                accumulated: 'accumulated', 
+                paid: 'paid', 
+                trend: '6-MONTH TREND', 
+                newExpense: 'NEW EXPENSE', 
+                description: 'Description', 
+                amount: 'Amount ($)', 
+                dueDay: 'Due day (1-31)', 
+                add: 'Add', 
+                edit: 'Edit', 
+                delete: 'Delete', 
+                pay: 'Pay', 
+                markUsed: 'Mark Used', 
+                used: 'Used', 
+                fixed: 'Fixed (with due date)', 
+                reserve: 'Reserve (no due date)', 
+                monthly: 'Monthly', 
+                quarterly: 'Quarterly', 
+                semiannual: 'Semiannual', 
+                annual: 'Annual', 
+                biannual: 'Biannual', 
+                fixedList: 'FIXED EXPENSES', 
+                reservesList: 'RESERVES (No Due Date)', 
+                noFixed: 'No fixed expenses', 
+                day: 'Day', 
+                editExpense: 'EDIT EXPENSE', 
+                cancel: 'Cancel', 
+                save: 'Save',
+                forgotPassword: 'Forgot password',
+                resetPassword: 'RESET PASSWORD',
+                backToLogin: 'Back to login',
+                sendResetEmail: 'Send reset email',
+                loading: 'Loading...',
+                // Error messages
+                errorInvalidCredentials: 'Invalid email or password',
+                errorUserNotFound: 'Email not registered',
+                errorWeakPassword: 'Password must be at least 6 characters',
+                errorEmailInUse: 'This email is already registered',
+                errorInvalidEmail: 'Invalid email',
+                errorGeneric: 'Error processing. Please try again.',
+                errorNetworkFailed: 'Connection error. Check your internet.',
+                successPasswordReset: 'Reset email sent! Check your inbox.',
+                errorTooManyRequests: 'Too many attempts. Wait a few minutes.'
+            }
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         let currentUser = null, expenses = [], customCategories = [], showSettings = false, editingExpense = null, trendChartInstance = null, currentLang = 'pt';
+        let isLoading = false, authError = '', showForgotPassword = false;
 
         const defaultCategories = [
             { value: 'moradia', label: '🏠 Moradia', labelEn: '🏠 Housing', isDefault: true },
@@ -48,6 +153,21 @@
 
         const t = (key) => translations[currentLang][key] || key;
         const getCategoryLabel = (cat) => cat.isDefault ? (currentLang === 'pt' ? cat.label : cat.labelEn) : cat.label;
+
+        // Função para traduzir erros do Firebase
+        function getErrorMessage(errorCode) {
+            const errorMap = {
+                'auth/invalid-credential': 'errorInvalidCredentials',
+                'auth/user-not-found': 'errorUserNotFound',
+                'auth/wrong-password': 'errorInvalidCredentials',
+                'auth/weak-password': 'errorWeakPassword',
+                'auth/email-already-in-use': 'errorEmailInUse',
+                'auth/invalid-email': 'errorInvalidEmail',
+                'auth/network-request-failed': 'errorNetworkFailed',
+                'auth/too-many-requests': 'errorTooManyRequests'
+            };
+            return t(errorMap[errorCode] || 'errorGeneric');
+        }
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
@@ -82,12 +202,74 @@
         function getAllCategories() { return [...defaultCategories, ...customCategories]; }
 
         async function handleAuth(isLogin) {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            // Limpar erros anteriores
+            authError = '';
+            emailInput.classList.remove('border-red-500');
+            passwordInput.classList.remove('border-red-500');
+            
+            // Validação básica
+            if (!email || !password) {
+                authError = t('errorInvalidEmail');
+                if (!email) emailInput.classList.add('border-red-500');
+                if (!password) passwordInput.classList.add('border-red-500');
+                render();
+                return;
+            }
+            
+            isLoading = true;
+            render();
+            
             try {
-                if (isLogin) await signInWithEmailAndPassword(auth, email, password);
-                else await createUserWithEmailAndPassword(auth, email, password);
-            } catch (error) { alert('Error: ' + error.message); }
+                if (isLogin) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+                authError = '';
+            } catch (error) {
+                authError = getErrorMessage(error.code);
+                emailInput.classList.add('border-red-500');
+                passwordInput.classList.add('border-red-500');
+            } finally {
+                isLoading = false;
+                render();
+            }
+        }
+
+        async function handlePasswordReset() {
+            const emailInput = document.getElementById('resetEmail');
+            const email = emailInput.value.trim();
+            
+            authError = '';
+            emailInput.classList.remove('border-red-500');
+            
+            if (!email) {
+                authError = t('errorInvalidEmail');
+                emailInput.classList.add('border-red-500');
+                render();
+                return;
+            }
+            
+            isLoading = true;
+            render();
+            
+            try {
+                await sendPasswordResetEmail(auth, email);
+                authError = '';
+                alert(t('successPasswordReset'));
+                showForgotPassword = false;
+            } catch (error) {
+                authError = getErrorMessage(error.code);
+                emailInput.classList.add('border-red-500');
+            } finally {
+                isLoading = false;
+                render();
+            }
         }
 
         async function addExpense(e) {
@@ -187,7 +369,58 @@
         function render() {
             const app = document.getElementById('app');
             if (!currentUser) {
-                app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white"><div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6"><h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1><p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p><div class="space-y-4"><input type="email" id="email" placeholder="${t('email')}" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white"><input type="password" id="password" placeholder="${t('password')}" class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white"><button onclick="handleAuth(true)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg">${t('login')}</button><button onclick="handleAuth(false)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">${t('createAccount')}</button></div></div></div>`;
+                if (showForgotPassword) {
+                    // Tela de recuperação de senha
+                    app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white">
+                        <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
+                            <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('resetPassword')}</h1>
+                            <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
+                            ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">${authError}</div>` : ''}
+                            <div class="space-y-4">
+                                <input type="email" id="resetEmail" placeholder="${t('email')}" 
+                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
+                                <button onclick="handlePasswordReset()" 
+                                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                    ${isLoading ? 'disabled' : ''}>
+                                    ${isLoading ? t('loading') : '📧 ' + t('sendResetEmail')}
+                                </button>
+                                <button onclick="toggleForgotPassword()" 
+                                    class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition-colors">
+                                    ← ${t('backToLogin')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                } else {
+                    // Tela de login
+                    app.innerHTML = `<div class="min-h-screen flex items-center justify-center p-4 text-white">
+                        <div class="max-w-md w-full bg-black/40 backdrop-blur-md border-2 border-purple-500/30 rounded-xl p-6">
+                            <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">${t('title')}</h1>
+                            <p class="text-center text-xs text-gray-500 mb-6">${APP_VERSION}</p>
+                            ${authError ? `<div class="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">⚠️ ${authError}</div>` : ''}
+                            <div class="space-y-4">
+                                <input type="email" id="email" placeholder="${t('email')}" 
+                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
+                                <input type="password" id="password" placeholder="${t('password')}" 
+                                    class="w-full bg-black/50 border-2 border-purple-500/50 rounded-lg px-4 py-3 text-white focus:border-purple-400 focus:outline-none transition-colors">
+                                <button onclick="handleAuth(true)" 
+                                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                    ${isLoading ? 'disabled' : ''}>
+                                    ${isLoading ? '⏳ ' + t('loading') : '🔐 ' + t('login')}
+                                </button>
+                                <button onclick="handleAuth(false)" 
+                                    class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                    ${isLoading ? 'disabled' : ''}>
+                                    ${isLoading ? '⏳ ' + t('loading') : '✨ ' + t('createAccount')}
+                                </button>
+                                <button onclick="toggleForgotPassword()" 
+                                    class="w-full text-purple-300 hover:text-purple-200 text-sm underline transition-colors">
+                                    🔑 ${t('forgotPassword')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                }
                 return;
             }
             const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
@@ -211,7 +444,7 @@
                 const cat = allCategories.find(c => c.value === exp.category) || { label: '📦 Other' };
                 return `<div class="p-4 rounded-lg border-2 ${exp.isUsed ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'}"><div class="flex justify-between items-start"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span>${getCategoryLabel(cat)}</span><span class="text-xs px-2 py-1 bg-green-500/20 rounded">${t(exp.frequency || 'monthly')}</span></div><p class="font-semibold text-white mb-1">${exp.description}</p><p class="text-2xl font-bold text-green-400">$${exp.displayAmount.toFixed(2)}/mo</p><p class="text-sm text-green-300 mt-1">💰 ${t('accumulated')}: $${exp.accumulated.toFixed(2)}</p></div><div class="flex gap-2 flex-col"><button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? '✓ ' + t('used') : t('markUsed')}</button><button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">✏️</button><button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">🗑️</button></div></div></div>`;
             }).join('')}</div></div>` : ''}
-            <div class="text-center text-gray-500 text-xs py-4 mt-4"><p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? '✨ Novo: PT/EN + Edit' : '✨ New: PT/EN + Edit'}</p></div></div></div>`;
+            <div class="text-center text-gray-500 text-xs py-4 mt-4"><p>Finance HUD ${APP_VERSION} | ${currentLang === 'pt' ? '✨ Novo: Recuperação de senha + Validação' : '✨ New: Password Reset + Validation'}</p></div></div></div>`;
             setTimeout(() => { if (expenses.length > 0) updateTrendChart(); }, 100);
         }
 
@@ -232,13 +465,21 @@
         }
 
         function toggleLang() { saveLanguage(currentLang === 'pt' ? 'en' : 'pt'); }
+        
+        function toggleForgotPassword() {
+            showForgotPassword = !showForgotPassword;
+            authError = '';
+            render();
+        }
 
         window.handleAuth = handleAuth;
+        window.handlePasswordReset = handlePasswordReset;
         window.addExpense = addExpense;
         window.togglePaid = togglePaid;
         window.toggleUsed = toggleUsed;
         window.deleteExpense = deleteExpense;
         window.toggleLang = toggleLang;
+        window.toggleForgotPassword = toggleForgotPassword;
         window.startEdit = startEdit;
         window.cancelEdit = cancelEdit;
         window.saveEdit = saveEdit;
