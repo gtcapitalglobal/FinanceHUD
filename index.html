@@ -376,7 +376,7 @@
                         }
                     }
                 }
-                alert(`🔄 ${copied} copiada(s)!`);
+                alert(` ${copied} copiada(s)!`);
             } catch (error) {
                 console.error(error);
             }
@@ -391,7 +391,7 @@
                     ...exp, description: exp.description + ' (cópia)',
                     paymentHistory: {}, usageHistory: {}, createdAt: new Date().toISOString()
                 });
-                alert('✅ Duplicada!');
+                alert(' Duplicada!');
             } catch (error) {
                 console.error(error);
             }
@@ -405,7 +405,7 @@
                 await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
                     ...inc, description: inc.description + ' (cópia)', createdAt: new Date().toISOString()
                 });
-                alert('✅ Duplicada!');
+                alert(' Duplicada!');
             } catch (error) {
                 console.error(error);
             }
@@ -438,7 +438,7 @@
                 }
                 await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { monthlyGoal: DEMO_DATA.savingsGoal });
                 await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'preferences'), { sawWelcome: true, language: currentLang }, { merge: true });
-                alert('✨ ' + t('demoLoaded'));
+                alert(' ' + t('demoLoaded'));
                 showWelcomeModal = false;
             } catch (error) {
                 console.error(error);
@@ -451,7 +451,7 @@
                 for (const inc of incomes) await deleteDoc(doc(db, `users/${currentUser.uid}/incomes/${inc.id}`));
                 for (const exp of expenses) await deleteDoc(doc(db, `users/${currentUser.uid}/expenses/${exp.id}`));
                 await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), { monthlyGoal: 0 });
-                alert('🗑️ ' + t('dataCleared'));
+                alert(' ' + t('dataCleared'));
             } catch (error) {
                 console.error(error);
             }
