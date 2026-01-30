@@ -229,6 +229,19 @@
  return incType ? (currentLang === 'pt' ? incType.labelPt : incType.labelEn) : type;
  };
 
+
+        const DEMO_DATA = {
+            incomes: [
+                { description: 'Salario', amount: 5000, monthlyAmount: 5000, type: 'salary', frequency: 'monthly' },
+                { description: 'Freelance', amount: 1200, monthlyAmount: 1200, type: 'freelance', frequency: 'monthly' }
+            ],
+            expenses: [
+                { description: 'Aluguel', amount: 1500, monthlyAmount: 1500, category: 'moradia', frequency: 'monthly', dueDay: 5, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} },
+                { description: 'Cartao', amount: 800, monthlyAmount: 800, category: 'cartao', frequency: 'monthly', dueDay: 10, expenseType: 'fixed', paymentHistory: {}, usageHistory: {} }
+            ],
+            savingsGoal: 1000
+        };
+
  function getErrorMessage(errorCode) {
  const errorMap = {
  'auth/invalid-credential': 'errorInvalidCredentials',
