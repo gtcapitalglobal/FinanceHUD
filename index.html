@@ -7,7 +7,7 @@
     <meta name="description" content="Finance HUD - Seu gestor financeiro pessoal completo">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icon-192.png">
-    <title>Finance HUD v1.7.0</title>
+    <title>Finance HUD v1.7.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -21,7 +21,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const APP_VERSION = 'v1.7.0';
+        const APP_VERSION = 'v1.7.1';
         const firebaseConfig = {
             apiKey: "AIzaSyBXLgEt0ERSSnPa2hb34vuruWRPHG-I33A",
             authDomain: "gestao-pessoal-f2a6d.firebaseapp.com",
@@ -90,7 +90,20 @@
                 errorGeneric: 'Erro ao processar. Tente novamente.',
                 errorNetworkFailed: 'Erro de conexao. Verifique sua internet.',
                 successPasswordReset: 'Email de recuperacao enviado! Verifique sua caixa de entrada.',
-                errorTooManyRequests: 'Muitas tentativas. Aguarde alguns minutos.'
+                search: 'Buscar...',
+                filterCategory: 'Todas Categorias',
+                filterStatus: 'Todos',
+                allStatus: 'Todos',
+                paidStatus: 'Pagos',
+                unpaidStatus: 'Nao Pagos',
+                sortBy: 'Ordenar',
+                sortName: 'Nome',
+                sortValue: 'Valor',
+                sortDate: 'Data',
+                duplicate: 'Duplicar',
+                showing: 'Mostrando',
+                of: 'de',
+                items: 'itens'
             },
             en: { 
                 title: 'FINANCE HUD',
@@ -150,7 +163,20 @@
                 errorGeneric: 'Error processing. Please try again.',
                 errorNetworkFailed: 'Connection error. Check your internet.',
                 successPasswordReset: 'Reset email sent! Check your inbox.',
-                errorTooManyRequests: 'Too many attempts. Wait a few minutes.'
+                search: 'Search...',
+                filterCategory: 'All Categories',
+                filterStatus: 'All',
+                allStatus: 'All',
+                paidStatus: 'Paid',
+                unpaidStatus: 'Unpaid',
+                sortBy: 'Sort',
+                sortName: 'Name',
+                sortValue: 'Value',
+                sortDate: 'Date',
+                duplicate: 'Duplicate',
+                showing: 'Showing',
+                of: 'of',
+                items: 'items'
             }
         };
 
@@ -162,6 +188,7 @@
         let editingExpense = null, editingIncome = null;
         let trendChartInstance = null, categoryChartInstance = null;
         let currentLang = 'pt', isLoading = false, authError = '', showForgotPassword = false;
+        let searchExpense = '', searchIncome = '', filterCategory = 'all', filterStatus = 'all', sortExpenseBy = 'date', sortIncomeBy = 'date';
 
         const defaultCategories = [
             { value: 'moradia', label: 'Moradia', labelEn: 'Housing' },
@@ -371,6 +398,17 @@
             render();
         }
 
+
+        async function duplicateIncome(incomeId) {
+            const income = incomes.find(i => i.id === incomeId);
+            if (!income) return;
+            await addDoc(collection(db, `users/${currentUser.uid}/incomes`), {
+                ...income,
+                description: income.description + ' (copia)',
+                createdAt: new Date().toISOString()
+            });
+        }
+
         async function deleteIncome(incomeId) {
             if (confirm(t('delete') + '?')) {
                 await deleteDoc(doc(db, `users/${currentUser.uid}/incomes/${incomeId}`));
@@ -437,6 +475,19 @@
             const key = `${year}-${month}`;
             await updateDoc(doc(db, `users/${currentUser.uid}/expenses/${expenseId}`), {
                 usageHistory: { ...expense.usageHistory, [key]: !expense.usageHistory[key] }
+            });
+        }
+
+
+        async function duplicateExpense(expenseId) {
+            const expense = expenses.find(e => e.id === expenseId);
+            if (!expense) return;
+            await addDoc(collection(db, `users/${currentUser.uid}/expenses`), {
+                ...expense,
+                description: expense.description + ' (copia)',
+                paymentHistory: {},
+                usageHistory: {},
+                createdAt: new Date().toISOString()
             });
         }
 
@@ -801,7 +852,7 @@
                     <div class="bg-black/60 border-2 border-purple-500/30 rounded-xl p-6 mb-4">
                         <h2 class="text-xl font-bold mb-4">${t('fixedList')} (${paidCount}/${fixedExpenses.length} ${t('paid')})</h2>
                         <div class="space-y-2">
-                            ${fixedExpenses.length === 0 ? `<p class="text-center text-gray-400 py-8">${t('noFixed')}</p>` : fixedExpenses.map(exp => {
+                            ${fixedExpenses.length === 0 ? `<p class="text-center text-gray-400 py-8">${searchExpense || filterCategory !== 'all' || filterStatus !== 'all' ? 'Nenhuma despesa encontrada' : t('noFixed')}</p>` : fixedExpenses.map(exp => {
                                 const cat = defaultCategories.find(c => c.value === exp.category);
                                 return `<div class="p-4 rounded-lg border-2 ${exp.isPaid ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-purple-500/30'}">
                                     <div class="flex justify-between items-start">
@@ -816,6 +867,7 @@
                                         </div>
                                         <div class="flex gap-2 flex-col">
                                             <button onclick="togglePaid('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isPaid ? 'bg-green-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isPaid ? t('paid') : t('pay')}</button>
+                                            <button onclick="duplicateExpense('${exp.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">${t('duplicate')}</button>
                                             <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">${t('edit')}</button>
                                             <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">${t('delete')}</button>
                                         </div>
@@ -844,6 +896,7 @@
                                         </div>
                                         <div class="flex gap-2 flex-col">
                                             <button onclick="toggleUsed('${exp.id}', ${currentMonth}, ${currentYear})" class="${exp.isUsed ? 'bg-blue-600' : 'bg-gray-600'} text-white px-3 py-1 rounded text-sm">${exp.isUsed ? t('used') : t('markUsed')}</button>
+                                            <button onclick="duplicateExpense('${exp.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">${t('duplicate')}</button>
                                             <button onclick="startEdit('${exp.id}')" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm">${t('edit')}</button>
                                             <button onclick="deleteExpense('${exp.id}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm">${t('delete')}</button>
                                         </div>
@@ -855,7 +908,7 @@
                     ` : ''}
 
                     <div class="text-center text-gray-500 text-xs py-4 mt-4">
-                        <p>Finance HUD ${APP_VERSION}</p>
+                        <p>Finance HUD ${APP_VERSION} - Busca, Filtros & Duplicar</p>
                     </div>
                 </div>
             </div>`;
@@ -929,6 +982,15 @@
         window.toggleDueDay = toggleDueDay;
         window.toggleDueDayEdit = toggleDueDayEdit;
         window.setSavingsGoal = setSavingsGoal;
+        window.duplicateIncome = duplicateIncome;
+        window.duplicateExpense = duplicateExpense;
+        window.setSearchExpense = setSearchExpense;
+        window.setSearchIncome = setSearchIncome;
+        window.setFilterCategory = setFilterCategory;
+        window.setFilterStatus = setFilterStatus;
+        window.setSortExpense = setSortExpense;
+        window.setSortIncome = setSortIncome;
+
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
